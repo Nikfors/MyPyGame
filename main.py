@@ -259,7 +259,6 @@ class MyGame(arcade.Window):
             arcade.color.WHITE, 16
         )
 
-        # Отображаем подсказку о прыжке
         if not self.hero_sprite.is_jumping:
             arcade.draw_text(
                 "Нажмите W для прыжка!",
@@ -293,19 +292,12 @@ class MyGame(arcade.Window):
             self.hero_sprite.jump()
             self.w_was_pressed = True
 
-        # Обработка движения ВНИЗ (S) - не используется, но оставляем для гравитации
-        # if self.down_pressed:
-        #     # В обычной платформерной игре S обычно для приседания
-        #     pass
-
         # Устанавливаем флаги
         self.hero_sprite.is_moving = is_moving
         self.hero_sprite.direction = direction
 
         # Обновляем физику
         self.physics_engine.update()
-
-        # Проверяем границы и обновляем анимацию
         self.hero_sprite.update()
 
     def on_key_press(self, key, modifiers):

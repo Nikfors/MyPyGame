@@ -12,10 +12,12 @@ CHARACTERS_DB = {
             "move_right": (54, 69),
             "move_left": (70, 85),
             "jump": (103, 115),
+            "crouch": (42, 49),  # Диапазон для приседания
         },
+        "crouch_freeze_frame": 45,  # Кадр на котором замираем при приседании
         "animation_speed": 5,
-        "movement_speed": 4,
-        "jump_speed": 14,
+        "movement_speed": 3,
+        "jump_speed": 15,
         "color": arcade.color.YELLOW
     },
 
@@ -29,10 +31,12 @@ CHARACTERS_DB = {
             "move_right": (37, 52),
             "move_left": (53, 68),
             "jump": (84, 99),
+            "crouch": (26, 36),  # Диапазон для приседания
         },
-        "animation_speed": 4,
-        "movement_speed": 4,
-        "jump_speed": 13,
+        "crouch_freeze_frame": 31,  # Кадр на котором замираем при приседании
+        "animation_speed": 5,
+        "movement_speed": 3,
+        "jump_speed": 15,
         "color": arcade.color.BLUE
     },
 }
@@ -51,7 +55,8 @@ def get_character_info(character_name):
             "display_name": data["display_name"],
             "color": data["color"],
             "health": data["health"],
-            "stand": data["stand_name"]
+            "stand": data["stand_name"],
+            "crouch_freeze_frame": data.get("crouch_freeze_frame", None)
         }
     return None
 
@@ -64,3 +69,10 @@ def character_exists(character_name):
 # Функция для получения данных персонажа
 def get_character_data(character_name):
     return CHARACTERS_DB.get(character_name, None)
+
+
+# Функция для получения кадра заморозки приседания
+def get_crouch_freeze_frame(character_name):
+    if character_name in CHARACTERS_DB:
+        return CHARACTERS_DB[character_name].get("crouch_freeze_frame", None)
+    return None

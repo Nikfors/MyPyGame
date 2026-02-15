@@ -4,9 +4,18 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="edc059fa-8a4a-44bb-87ee-22a73f0e2ec1" name="Changes" comment="оптимизация программы для удобного добовления персонажей, добавлен выбор персонажей, Новый персонаж: Джотаро,">
+    <list default="true" id="edc059fa-8a4a-44bb-87ee-22a73f0e2ec1" name="Changes" comment="оптимизация программы для удобного добовления персонажей, добавлен выбор персонажей, Новый персонаж: Джотаро.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/harakteristici.py" beforeDir="false" afterPath="$PROJECT_DIR$/harakteristici.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_0-46.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_0-47.png" beforeDir="false" afterPath="$PROJECT_DIR$/Спрайты/DIO/DIO_0-47.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_0-48.png" beforeDir="false" afterPath="$PROJECT_DIR$/Спрайты/DIO/DIO_0-48.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_0-49.png" beforeDir="false" afterPath="$PROJECT_DIR$/Спрайты/DIO/DIO_0-49.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_0-50.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_0-51.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_0-52.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_0-53.png" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -43,22 +52,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python.harakteristici.executor": "Run",
-    "Python.main.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "master"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.harakteristici.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;
   },
-  "keyToStringList": {
-    "ChangesTree.GroupingKeys": [
-      "directory",
-      "repository"
+  &quot;keyToStringList&quot;: {
+    &quot;ChangesTree.GroupingKeys&quot;: [
+      &quot;directory&quot;,
+      &quot;repository&quot;
     ]
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\user\PycharmProjects\MyPyGame" />
@@ -187,7 +196,15 @@
       <option name="project" value="LOCAL" />
       <updated>1771154324951</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="оптимизация программы для удобного добовления персонажей, добавлен выбор персонажей, Новый персонаж: Джотаро.">
+      <option name="closed" value="true" />
+      <created>1771154783345</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1771154783345</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">

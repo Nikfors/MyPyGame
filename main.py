@@ -2,8 +2,10 @@ import arcade
 from pathlib import Path
 from harakteristici import (
     get_available_characters,
+    get_character_info,
     character_exists,
-    get_character_data
+    get_character_data,
+    get_crouch_freeze_frame
 )
 
 # Константы
@@ -33,6 +35,7 @@ class Character(arcade.Sprite):
         self.movement_speed = self.character_data.get("movement_speed", 5)
         self.jump_speed = self.character_data.get("jump_speed", 15)
         self.animation_speed = self.character_data.get("animation_speed", 5)
+        self.crouch_freeze_frame = self.character_data.get("crouch_freeze_frame", None)
 
         # Диапазоны кадров
         self.frame_ranges = self.character_data["frame_ranges"]
@@ -55,6 +58,9 @@ class Character(arcade.Sprite):
         self.frame_counter = 0
         self.current_action = "idle"
         self.is_jumping = False
+        self.is_crouching = False
+        self.crouch_freeze_frame_active = None  # Кадр на котором замираем при приседании
+        self.crouch_resume_frame = None  # Кадр с которого продолжаем после отпускания
 
         # Физика
         self.change_y = 0
@@ -64,8 +70,11 @@ class Character(arcade.Sprite):
 
         print(f"Загружен персонаж: {self.character_data['display_name']}")
         print(f"Кадров загружено: {len(self.all_textures)}")
+        print(f"Диапазоны: {self.frame_ranges}")
+        print(f"Кадр заморозки приседания: {self.crouch_freeze_frame}")
 
     def load_all_textures(self):
+        """Загрузка всех текстур"""
         character_path = Path("Спрайты") / self.character_name
 
         # Определяем максимальный номер кадра
@@ -88,7 +97,8 @@ class Character(arcade.Sprite):
                 self.all_textures.append(None)
 
     def jump(self):
-        if not self.is_jumping and self.center_y <= 100:
+        """Прыжок"""
+        if not self.is_jumping and not self.is_crouching and self.center_y <= 100:
             self.change_y = self.jump_speed
             self.is_jumping = True
             self.current_action = "jump"
@@ -97,8 +107,47 @@ class Character(arcade.Sprite):
             return True
         return False
 
+    def crouch(self, start_crouch=True):
+        """Приседание / Вставание
+
+        Args:
+            start_crouch: True - начать приседание, False - закончить
+        """
+        if "crouch" not in self.frame_ranges:
+            return
+
+        start_frame, end_frame = self.frame_ranges["crouch"]
+
+        if start_crouch:
+            # Начинаем приседание
+            if not self.is_jumping and not self.is_crouching:
+                self.is_crouching = True
+                self.current_action = "crouch"
+                self.current_frame = start_frame
+                self.frame_counter = 0
+
+                # Устанавливаем кадр заморозки из характеристик
+                if self.crouch_freeze_frame and start_frame <= self.crouch_freeze_frame <= end_frame:
+                    self.crouch_freeze_frame_active = self.crouch_freeze_frame
+                else:
+                    # Если не указан или вне диапазона, замираем на середине
+                    self.crouch_freeze_frame_active = (start_frame + end_frame) // 2
+        else:
+            # Заканчиваем приседание
+            if self.is_crouching:
+                # Запоминаем текущий кадр как точку возобновления
+                self.crouch_resume_frame = self.current_frame
+                self.is_crouching = False
+                # Сбрасываем флаг заморозки
+                self.crouch_freeze_frame_active = None
+
     def set_action(self, new_action):
+        """Смена действия"""
         if new_action == self.current_action:
+            return
+
+        # Не меняем действие во время прыжка
+        if self.is_jumping and new_action not in ["jump", "idle"]:
             return
 
         if new_action in self.frame_ranges:
@@ -107,6 +156,7 @@ class Character(arcade.Sprite):
             self.frame_counter = 0
 
     def update_animation(self):
+        """Обновление анимации"""
         self.frame_counter += 1
 
         # Получаем текущий диапазон
@@ -115,16 +165,46 @@ class Character(arcade.Sprite):
         # Меняем кадр
         if self.frame_counter >= self.animation_speed:
             self.frame_counter = 0
-            self.current_frame += 1
 
             # Для прыжка - один раз
             if self.current_action == "jump":
+                self.current_frame += 1
                 if self.current_frame > end_frame:
                     self.current_frame = end_frame
                     self.is_jumping = False
                     self.current_action = "idle"
+
+            # Для приседания - особая логика
+            elif self.current_action == "crouch":
+                if self.is_crouching:
+                    # Если приседаем и есть кадр заморозки
+                    if self.crouch_freeze_frame_active is not None:
+                        if self.current_frame < self.crouch_freeze_frame_active:
+                            # Идем до кадра заморозки
+                            self.current_frame += 1
+                            if self.current_frame > self.crouch_freeze_frame_active:
+                                self.current_frame = self.crouch_freeze_frame_active
+                        # Замираем на кадре заморозки
+                    else:
+                        # Обычное приседание без заморозки
+                        self.current_frame += 1
+                        if self.current_frame > end_frame:
+                            self.current_frame = end_frame
+                else:
+                    # Если встаем - допроигрываем с текущего кадра до конца
+                    if self.crouch_resume_frame is not None:
+                        self.current_frame = self.crouch_resume_frame
+                        self.crouch_resume_frame = None
+
+                    self.current_frame += 1
+                    if self.current_frame > end_frame:
+                        self.current_frame = end_frame
+                        # После завершения анимации вставания переходим в idle
+                        self.current_action = "idle"
+
             else:
-                # Для остальных - зацикливаем
+                # Для остальных действий - зацикливаем
+                self.current_frame += 1
                 if self.current_frame > end_frame:
                     self.current_frame = start_frame
 
@@ -133,8 +213,10 @@ class Character(arcade.Sprite):
                 self.texture = self.all_textures[self.current_frame]
 
     def update(self):
+        """Обновление"""
         # Гравитация
-        self.change_y -= GRAVITY
+        if not self.is_crouching:
+            self.change_y -= GRAVITY
         self.center_y += self.change_y
 
         # Земля
@@ -159,6 +241,8 @@ class Character(arcade.Sprite):
 
 
 class MenuView(arcade.View):
+    """Меню выбора персонажа"""
+
     def __init__(self):
         super().__init__()
 
@@ -177,8 +261,8 @@ class MenuView(arcade.View):
             anchor_x="center"
         )
 
-
     def load_logos(self):
+        """Загрузка логотипов"""
         logos_path = Path("Лого")
         for character in self.characters:
             for file_path in logos_path.glob(f"{character}.*"):
@@ -243,6 +327,8 @@ class MenuView(arcade.View):
 
 
 class GameView(arcade.View):
+    """Игровой процесс"""
+
     def __init__(self, character_name):
         super().__init__()
 
@@ -253,7 +339,9 @@ class GameView(arcade.View):
         self.left_pressed = False
         self.right_pressed = False
         self.up_pressed = False
+        self.down_pressed = False
         self.w_was_pressed = False
+        self.s_was_pressed = False
 
         # Персонаж
         self.character = None
@@ -261,6 +349,7 @@ class GameView(arcade.View):
         self.physics = None
 
     def setup(self):
+        """Настройка игры"""
         self.character_list = arcade.SpriteList()
         self.character = Character(self.character_name, SCREEN_WIDTH // 2, 100)
         self.character_list.append(self.character)
@@ -283,13 +372,25 @@ class GameView(arcade.View):
 
             # Информация
             y = SCREEN_HEIGHT - 30
+            arcade.draw_text(f"Персонаж: {self.character.character_data['display_name']}", 10, y, arcade.color.WHITE,
+                             16)
+            y -= 25
             arcade.draw_text(f"Действие: {self.character.current_action}", 10, y, arcade.color.WHITE, 16)
             y -= 25
             arcade.draw_text(f"Кадр: {self.character.current_frame}", 10, y, arcade.color.WHITE, 16)
             y -= 25
-            arcade.draw_text(f"Счетчик: {self.character.frame_counter}", 10, y, arcade.color.WHITE, 16)
+            arcade.draw_text(f"Флаги: прыжок={self.character.is_jumping}, присед={self.character.is_crouching}", 10, y,
+                             arcade.color.WHITE, 16)
             y -= 25
+            if self.character.crouch_freeze_frame_active:
+                arcade.draw_text(f"Заморозка на кадре: {self.character.crouch_freeze_frame_active}", 10, y,
+                                 arcade.color.YELLOW, 16)
+                y -= 25
             arcade.draw_text(f"ESC - меню", 10, y, arcade.color.WHITE, 16)
+
+            # Подсказки по управлению
+            arcade.draw_text("W - прыжок, S - присесть (замереть на кадре), A/D - движение",
+                             SCREEN_WIDTH // 2, 50, arcade.color.GRAY, 14, anchor_x="center")
 
     def on_update(self, delta_time):
         if not self.character:
@@ -298,26 +399,41 @@ class GameView(arcade.View):
         # Движение
         self.character.change_x = 0
 
-        if self.left_pressed:
-            self.character.change_x = -self.character.movement_speed
-            self.character.facing_right = False
-            if not self.character.is_jumping:
-                self.character.set_action("move_left")
+        # Не можем двигаться во время приседания или вставания
+        if not self.character.is_crouching and self.character.current_action != "crouch":
+            if self.left_pressed:
+                self.character.change_x = -self.character.movement_speed
+                self.character.facing_right = False
+                if not self.character.is_jumping:
+                    self.character.set_action("move_left")
 
-        if self.right_pressed:
-            self.character.change_x = self.character.movement_speed
-            self.character.facing_right = True
-            if not self.character.is_jumping:
-                self.character.set_action("move_right")
+            if self.right_pressed:
+                self.character.change_x = self.character.movement_speed
+                self.character.facing_right = True
+                if not self.character.is_jumping:
+                    self.character.set_action("move_right")
 
-        # Если не двигаемся и не прыгаем
-        if not self.left_pressed and not self.right_pressed and not self.character.is_jumping:
+        # Если не двигаемся и не прыгаем и не в специальных состояниях
+        if (not self.left_pressed and not self.right_pressed and
+                not self.character.is_jumping and
+                self.character.current_action not in ["crouch"]):
             self.character.set_action("idle")
 
-        # Прыжок
+        # Прыжок (нельзя прыгать во время приседания или вставания)
         if self.up_pressed and not self.w_was_pressed:
-            self.character.jump()
+            if not self.character.is_crouching and self.character.current_action != "crouch":
+                self.character.jump()
             self.w_was_pressed = True
+
+        # Приседание - кадр заморозки берется из характеристик персонажа
+        if self.down_pressed and not self.s_was_pressed:
+            self.character.crouch(True)
+            self.s_was_pressed = True
+
+        # Отпускание S - допроигрываем оставшиеся кадры
+        if not self.down_pressed and self.s_was_pressed:
+            self.character.crouch(False)
+            self.s_was_pressed = False
 
         # Физика
         self.physics.update()
@@ -330,6 +446,8 @@ class GameView(arcade.View):
             self.right_pressed = True
         elif key == arcade.key.W:
             self.up_pressed = True
+        elif key == arcade.key.S:
+            self.down_pressed = True
         elif key == arcade.key.ESCAPE:
             self.window.show_view(MenuView())
 
@@ -341,6 +459,9 @@ class GameView(arcade.View):
         elif key == arcade.key.W:
             self.up_pressed = False
             self.w_was_pressed = False
+        elif key == arcade.key.S:
+            self.down_pressed = False
+            # Не сбрасываем s_was_pressed здесь, это делается в on_update
 
 
 def main():

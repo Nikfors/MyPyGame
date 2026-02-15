@@ -2,7 +2,6 @@ import arcade
 from pathlib import Path
 from harakteristici import (
     get_available_characters,
-    get_character_info,
     character_exists,
     get_character_data
 )
@@ -67,7 +66,6 @@ class Character(arcade.Sprite):
         print(f"Кадров загружено: {len(self.all_textures)}")
 
     def load_all_textures(self):
-        """Загрузка всех текстур"""
         character_path = Path("Спрайты") / self.character_name
 
         # Определяем максимальный номер кадра
@@ -90,7 +88,6 @@ class Character(arcade.Sprite):
                 self.all_textures.append(None)
 
     def jump(self):
-        """Прыжок"""
         if not self.is_jumping and self.center_y <= 100:
             self.change_y = self.jump_speed
             self.is_jumping = True
@@ -101,7 +98,6 @@ class Character(arcade.Sprite):
         return False
 
     def set_action(self, new_action):
-        """Смена действия"""
         if new_action == self.current_action:
             return
 
@@ -111,7 +107,6 @@ class Character(arcade.Sprite):
             self.frame_counter = 0
 
     def update_animation(self):
-        """Обновление анимации"""
         self.frame_counter += 1
 
         # Получаем текущий диапазон
@@ -138,7 +133,6 @@ class Character(arcade.Sprite):
                 self.texture = self.all_textures[self.current_frame]
 
     def update(self):
-        """Обновление"""
         # Гравитация
         self.change_y -= GRAVITY
         self.center_y += self.change_y
@@ -165,8 +159,6 @@ class Character(arcade.Sprite):
 
 
 class MenuView(arcade.View):
-    """Меню выбора персонажа"""
-
     def __init__(self):
         super().__init__()
 
@@ -187,7 +179,6 @@ class MenuView(arcade.View):
 
 
     def load_logos(self):
-        """Загрузка логотипов"""
         logos_path = Path("Лого")
         for character in self.characters:
             for file_path in logos_path.glob(f"{character}.*"):
@@ -252,8 +243,6 @@ class MenuView(arcade.View):
 
 
 class GameView(arcade.View):
-    """Игровой процесс"""
-
     def __init__(self, character_name):
         super().__init__()
 
@@ -272,7 +261,6 @@ class GameView(arcade.View):
         self.physics = None
 
     def setup(self):
-        """Настройка игры"""
         self.character_list = arcade.SpriteList()
         self.character = Character(self.character_name, SCREEN_WIDTH // 2, 100)
         self.character_list.append(self.character)

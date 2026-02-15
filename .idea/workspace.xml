@@ -4,14 +4,105 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="edc059fa-8a4a-44bb-87ee-22a73f0e2ec1" name="Changes" comment="добавлена создание персонажа и анимация бездействия">
+    <list default="true" id="edc059fa-8a4a-44bb-87ee-22a73f0e2ec1" name="Changes" comment="добавлен физ движок и анимация прыжка и анимации для движения перед и назад">
+      <change afterPath="$PROJECT_DIR$/harakteristici.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается вперед/DIO_0-54.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается вперед/DIO_0-55.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается вперед/DIO_0-56.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается вперед/DIO_0-57.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается вперед/DIO_0-58.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается вперед/DIO_0-59.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается вперед/DIO_0-60.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается вперед/DIO_0-61.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается вперед/DIO_0-62.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается вперед/DIO_0-63.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается вперед/DIO_0-64.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается вперед/DIO_0-65.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается вперед/DIO_0-66.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается вперед/DIO_0-67.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается вперед/DIO_0-68.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается вперед/DIO_0-69.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается назад/DIO_0-70.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается назад/DIO_0-71.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается назад/DIO_0-72.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается назад/DIO_0-73.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается назад/DIO_0-74.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается назад/DIO_0-75.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается назад/DIO_0-76.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается назад/DIO_0-77.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается назад/DIO_0-78.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается назад/DIO_0-79.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается назад/DIO_0-80.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается назад/DIO_0-81.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается назад/DIO_0-82.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается назад/DIO_0-83.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается назад/DIO_0-84.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-двигается назад/DIO_0-85.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-прыжок/DIO_0-103.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-прыжок/DIO_0-104.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-прыжок/DIO_0-105.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-прыжок/DIO_0-106.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-прыжок/DIO_0-107.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-прыжок/DIO_0-108.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-прыжок/DIO_0-109.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-прыжок/DIO_0-110.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-прыжок/DIO_0-111.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-прыжок/DIO_0-112.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-прыжок/DIO_0-113.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-прыжок/DIO_0-114.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-прыжок/DIO_0-115.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-0.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-1.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-10.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-11.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-12.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-13.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-14.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-15.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-16.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-17.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-18.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-19.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-2.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-20.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-21.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-22.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-23.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-24.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-25.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-26.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-27.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-28.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-29.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-3.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-30.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-31.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-32.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-33.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-34.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-35.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-36.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-37.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-4.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-5.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-6.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-7.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-8.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DIO-стоит/DIO_0-9.png" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -39,6 +130,7 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.harakteristici.executor": "Run",
     "Python.main.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
@@ -56,7 +148,29 @@
       <recent name="C:\Users\user\PycharmProjects\MyPyGame" />
     </key>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Python.main">
+    <configuration name="harakteristici" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="MyPyGame" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/harakteristici.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="MyPyGame" />
       <option name="ENV_FILES" value="" />
@@ -82,6 +196,7 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.main" />
+        <item itemvalue="Python.harakteristici" />
       </list>
     </recent_temporary>
   </component>
@@ -132,13 +247,31 @@
       <option name="project" value="LOCAL" />
       <updated>1770607883824</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="добавлен физ движок и анимация прыжка">
+      <option name="closed" value="true" />
+      <created>1770609665960</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1770609665960</updated>
+    </task>
+    <task id="LOCAL-00006" summary="добавлен физ движок и анимация прыжка и анимации для движения перед и назад">
+      <option name="closed" value="true" />
+      <created>1770609826446</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1770609826446</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="добавил тз" />
     <MESSAGE value="добавил тз__" />
     <MESSAGE value="добавлена создание персонажа и анимация бездействия" />
-    <option name="LAST_COMMIT_MESSAGE" value="добавлена создание персонажа и анимация бездействия" />
+    <MESSAGE value="добавлен физ движок и анимация прыжка" />
+    <MESSAGE value="добавлен физ движок и анимация прыжка и анимации для движения перед и назад" />
+    <option name="LAST_COMMIT_MESSAGE" value="добавлен физ движок и анимация прыжка и анимации для движения перед и назад" />
   </component>
 </project>

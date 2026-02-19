@@ -17,8 +17,10 @@ MENU_SELECTED_COLOR = arcade.color.YELLOW
 
 
 class Character(arcade.Sprite):
-    def __init__(self, character_name, start_pos_x, start_pos_y, player_number=1):
-        """Инициализация персонажа"""
+    def __init__(self, character_name, start_pos_x, start_pos_y, player_number=1, opponent=None):
+        super().__init__()
+
+        # Проверяем существование персонажа
         if not character_exists(character_name):
             raise ValueError(f"Персонаж {character_name} не найден!")
 
@@ -27,6 +29,7 @@ class Character(arcade.Sprite):
         self.character_name = character_name
         self.file_prefix = self.character_data["file_prefix"]
         self.player_number = player_number
+        self.opponent = opponent
 
         # Характеристики
         self.movement_speed = self.character_data.get("movement_speed", 3)
@@ -38,18 +41,19 @@ class Character(arcade.Sprite):
         # Диапазоны кадров
         self.frame_ranges = self.character_data["frame_ranges"]
 
-        # Загружаем текстуры
-        self.all_textures = []
+        # Загружаем текстуры для обоих направлений
+        self.all_textures = [{}, {}]
         self.load_all_textures()
 
-        # Инициализируем спрайт с масштабированием
-        super().__init__(scale=self.sprite_scale)
-        if self.all_textures:
-            self.texture = self.all_textures[0]
+        # Устанавливаем масштаб
+        self.scale = self.sprite_scale
 
         # Позиция
         self.center_x = start_pos_x
         self.center_y = start_pos_y
+
+        self.facing_right = True  # Временное значение
+        self.current_direction = 0  # 0 - обычные спрайты, 1 - зеркальные
 
         # Анимация
         self.current_frame = 0
@@ -63,17 +67,26 @@ class Character(arcade.Sprite):
         # Физика
         self.change_y = 0
 
-        # Направление
-        if player_number == 2:
-            self.facing_right = False
-        else:
-            self.facing_right = True
-
         print(f"Загружен персонаж {self.player_number}: {self.character_data['display_name']}")
-        print(f"  Масштаб: {self.sprite_scale}")
+
+    def set_opponent(self, opponent):
+        self.opponent = opponent
+        print(f"Персонаж {self.player_number} получил ссылку на противника")
+
+    def update_facing_direction(self):
+        if self.opponent:
+            # Если противник справа - смотрим направо (используем обычные спрайты)
+            # Если противник слева - смотрим налево (используем зеркальные спрайты)
+            if self.opponent.center_x > self.center_x:
+                # Противник справа - смотрим направо (обычные спрайты)
+                self.facing_right = True
+                self.current_direction = 0
+            else:
+                # Противник слева - смотрим налево (зеркальные спрайты)
+                self.facing_right = False
+                self.current_direction = 1
 
     def load_all_textures(self):
-        """Загрузка всех текстур"""
         character_path = Path("Спрайты") / self.character_name
 
         # Определяем максимальный номер кадра
@@ -81,7 +94,8 @@ class Character(arcade.Sprite):
         for start, end in self.frame_ranges.values():
             max_frame = max(max_frame, end)
 
-        # Загружаем кадры
+        # Загружаем обычные спрайты (смотрят вправо) - суффикс _0
+        print(f"Загрузка обычных спрайтов для {self.character_name}:")
         for i in range(max_frame + 1):
             filename = f"{self.file_prefix}_0-{i}.png"
             file_path = character_path / filename
@@ -89,11 +103,74 @@ class Character(arcade.Sprite):
             if file_path.exists():
                 try:
                     texture = arcade.load_texture(str(file_path))
-                    self.all_textures.append(texture)
-                except:
-                    self.all_textures.append(None)
+                    self.all_textures[0][i] = texture
+                    print(f"  Загружен {filename}")
+                except Exception as e:
+                    print(f"  Ошибка загрузки {filename}: {e}")
+                    self.all_textures[0][i] = None
             else:
-                self.all_textures.append(None)
+                self.all_textures[0][i] = None
+
+        # Загружаем зеркальные спрайты (смотрят влево) - суффикс _1
+        print(f"Загрузка зеркальных спрайтов для {self.character_name}:")
+        for i in range(max_frame + 1):
+            filename = f"{self.file_prefix}_1-{i}.png"
+            file_path = character_path / filename
+
+            if file_path.exists():
+                try:
+                    texture = arcade.load_texture(str(file_path))
+                    self.all_textures[1][i] = texture
+                    print(f"  Загружен {filename}")
+                except Exception as e:
+                    print(f"  Ошибка загрузки {filename}: {e}")
+                    self.all_textures[1][i] = None
+            else:
+                self.all_textures[1][i] = None
+
+        # Подсчет загруженных текстур
+        count_right = len([t for t in self.all_textures[0].values() if t])
+        count_left = len([t for t in self.all_textures[1].values() if t])
+        print(f"Загружено: обычных - {count_right}, зеркальных - {count_left}")
+
+        # Устанавливаем начальную текстуру
+        if 0 in self.all_textures[0] and self.all_textures[0][0]:
+            self.texture = self.all_textures[0][0]
+
+    def get_current_texture(self, frame_number):
+        if frame_number in self.all_textures[self.current_direction] and self.all_textures[self.current_direction][
+            frame_number]:
+            return self.all_textures[self.current_direction][frame_number]
+
+        # Если текстура для этого направления не найдена, пробуем другое
+        other_direction = 1 - self.current_direction
+        if frame_number in self.all_textures[other_direction] and self.all_textures[other_direction][frame_number]:
+            return self.all_textures[other_direction][frame_number]
+
+        # Если ничего не найдено, возвращаем любую доступную текстуру
+        for direction in [0, 1]:
+            if frame_number in self.all_textures[direction] and self.all_textures[direction][frame_number]:
+                return self.all_textures[direction][frame_number]
+
+        return None
+
+    def get_action_for_movement(self, moving_left, moving_right):
+        if self.current_direction == 0:
+            # Обычные спрайты (смотрят вправо)
+            if moving_left:
+                return "move_left"
+            elif moving_right:
+                return "move_right"
+        else:
+            # Зеркальные спрайты (смотрят влево) - меняем местами
+            if moving_left:
+                # Движение влево на поле, но персонаж смотрит влево - используем анимацию "move_right"
+                return "move_right"
+            elif moving_right:
+                # Движение вправо на поле, но персонаж смотрит влево - используем анимацию "move_left"
+                return "move_left"
+
+        return None
 
     def jump(self):
         """Прыжок"""
@@ -131,7 +208,6 @@ class Character(arcade.Sprite):
                 self.crouch_freeze_frame_active = None
 
     def set_action(self, new_action):
-        """Смена действия"""
         if new_action == self.current_action:
             return
 
@@ -144,11 +220,8 @@ class Character(arcade.Sprite):
             self.frame_counter = 0
 
     def update_animation(self):
-        """Обновление анимации"""
         self.frame_counter += 1
-
         start_frame, end_frame = self.frame_ranges[self.current_action]
-
         if self.frame_counter >= self.animation_speed:
             self.frame_counter = 0
 
@@ -185,11 +258,16 @@ class Character(arcade.Sprite):
                 if self.current_frame > end_frame:
                     self.current_frame = start_frame
 
-            if self.current_frame < len(self.all_textures) and self.all_textures[self.current_frame]:
-                self.texture = self.all_textures[self.current_frame]
+            # Устанавливаем текстуру с учетом направления взгляда
+            texture = self.get_current_texture(self.current_frame)
+            if texture:
+                self.texture = texture
 
     def update(self):
-        """Обновление"""
+        # Сначала обновляем направление взгляда относительно противника
+        self.update_facing_direction()
+
+        # Гравитация
         if not self.is_crouching:
             self.change_y -= GRAVITY
         self.center_y += self.change_y
@@ -213,8 +291,6 @@ class Character(arcade.Sprite):
 
 
 class ModeMenuView(arcade.View):
-    """Меню выбора режима игры"""
-
     def __init__(self):
         super().__init__()
 
@@ -380,6 +456,7 @@ class TestCharacterSelectView(arcade.View):
                     )
                 )
 
+            # Определяем цвет для имени
             if self.current_player == 1 and i == self.p1_selected:
                 color = arcade.color.GREEN  # Выбранный текущим игроком
             elif i == self.p1_selected:
@@ -526,21 +603,26 @@ class TestGameView(arcade.View):
         self.physics2 = None
 
     def setup(self):
-        # Первый игрок слева
-        self.player1_list = arcade.SpriteList()
+        # Создаем персонажей без ссылок друг на друга
         self.player1 = Character(self.p1_character_name, SCREEN_WIDTH // 4, GROUND_LEVEL, player_number=1)
+        self.player2 = Character(self.p2_character_name, 3 * SCREEN_WIDTH // 4, GROUND_LEVEL, player_number=2)
+
+        # Устанавливаем ссылки друг на друга
+        self.player1.set_opponent(self.player2)
+        self.player2.set_opponent(self.player1)
+
+        # Создаем спрайт-листы
+        self.player1_list = arcade.SpriteList()
         self.player1_list.append(self.player1)
         self.physics1 = arcade.PhysicsEngineSimple(self.player1, None)
 
-        # Второй игрок справа
         self.player2_list = arcade.SpriteList()
-        self.player2 = Character(self.p2_character_name, 3 * SCREEN_WIDTH // 4, GROUND_LEVEL, player_number=2)
         self.player2_list.append(self.player2)
         self.physics2 = arcade.PhysicsEngineSimple(self.player2, None)
 
         print(f"Тестовый режим запущен")
-        print(f"Игрок 1: {self.p1_character_name} (WASD)")
-        print(f"Игрок 2: {self.p2_character_name} (Стрелки)")
+        print(f"Игрок 1: {self.p1_character_name} (WASD) - позиция X: {self.player1.center_x}")
+        print(f"Игрок 2: {self.p2_character_name} (Стрелки) - позиция X: {self.player2.center_x}")
 
     def on_show(self):
         self.setup()
@@ -561,29 +643,41 @@ class TestGameView(arcade.View):
         # Информация об игроках
         # Игрок 1 (слева)
         info_y = SCREEN_HEIGHT - 50
-        arcade.draw_text("ИГРОК 1", SCREEN_WIDTH // 4, info_y, arcade.color.CYAN, 20, anchor_x="center")
-        info_y -= 30
-        arcade.draw_text(f"Персонаж: {self.player1.character_data['display_name']}",
-                         SCREEN_WIDTH // 4, info_y, arcade.color.WHITE, 14, anchor_x="center")
-        info_y -= 25
-        arcade.draw_text(f"Действие: {self.player1.current_action}",
-                         SCREEN_WIDTH // 4, info_y, arcade.color.WHITE, 14, anchor_x="center")
-        info_y -= 25
-        arcade.draw_text(f"Кадр: {self.player1.current_frame}",
-                         SCREEN_WIDTH // 4, info_y, arcade.color.WHITE, 14, anchor_x="center")
+        if self.player1 and hasattr(self.player1, 'character_data'):
+            arcade.draw_text("ИГРОК 1", SCREEN_WIDTH // 4, info_y, arcade.color.CYAN, 20, anchor_x="center")
+            info_y -= 30
+            arcade.draw_text(f"Персонаж: {self.player1.character_data['display_name']}",
+                             SCREEN_WIDTH // 4, info_y, arcade.color.WHITE, 14, anchor_x="center")
+            info_y -= 25
+            arcade.draw_text(f"Действие: {self.player1.current_action}",
+                             SCREEN_WIDTH // 4, info_y, arcade.color.WHITE, 14, anchor_x="center")
+            info_y -= 25
+            arcade.draw_text(f"Кадр: {self.player1.current_frame}",
+                             SCREEN_WIDTH // 4, info_y, arcade.color.WHITE, 14, anchor_x="center")
+            info_y -= 25
+            # Показываем, какой тип спрайтов используется
+            sprite_type = "Обычные (смотрит вправо)" if self.player1.current_direction == 0 else "Зеркальные (смотрит влево)"
+            arcade.draw_text(f"Спрайты: {sprite_type}",
+                             SCREEN_WIDTH // 4, info_y, arcade.color.YELLOW, 14, anchor_x="center")
 
         # Игрок 2 (справа)
         info_y = SCREEN_HEIGHT - 50
-        arcade.draw_text("ИГРОК 2", 3 * SCREEN_WIDTH // 4, info_y, arcade.color.ORANGE, 20, anchor_x="center")
-        info_y -= 30
-        arcade.draw_text(f"Персонаж: {self.player2.character_data['display_name']}",
-                         3 * SCREEN_WIDTH // 4, info_y, arcade.color.WHITE, 14, anchor_x="center")
-        info_y -= 25
-        arcade.draw_text(f"Действие: {self.player2.current_action}",
-                         3 * SCREEN_WIDTH // 4, info_y, arcade.color.WHITE, 14, anchor_x="center")
-        info_y -= 25
-        arcade.draw_text(f"Кадр: {self.player2.current_frame}",
-                         3 * SCREEN_WIDTH // 4, info_y, arcade.color.WHITE, 14, anchor_x="center")
+        if self.player2 and hasattr(self.player2, 'character_data'):
+            arcade.draw_text("ИГРОК 2", 3 * SCREEN_WIDTH // 4, info_y, arcade.color.ORANGE, 20, anchor_x="center")
+            info_y -= 30
+            arcade.draw_text(f"Персонаж: {self.player2.character_data['display_name']}",
+                             3 * SCREEN_WIDTH // 4, info_y, arcade.color.WHITE, 14, anchor_x="center")
+            info_y -= 25
+            arcade.draw_text(f"Действие: {self.player2.current_action}",
+                             3 * SCREEN_WIDTH // 4, info_y, arcade.color.WHITE, 14, anchor_x="center")
+            info_y -= 25
+            arcade.draw_text(f"Кадр: {self.player2.current_frame}",
+                             3 * SCREEN_WIDTH // 4, info_y, arcade.color.WHITE, 14, anchor_x="center")
+            info_y -= 25
+            # Показываем, какой тип спрайтов используется
+            sprite_type = "Обычные (смотрит вправо)" if self.player2.current_direction == 0 else "Зеркальные (смотрит влево)"
+            arcade.draw_text(f"Спрайты: {sprite_type}",
+                             3 * SCREEN_WIDTH // 4, info_y, arcade.color.YELLOW, 14, anchor_x="center")
 
         # Управление
         arcade.draw_text("WASD", SCREEN_WIDTH // 4, 80, arcade.color.CYAN, 18, anchor_x="center")
@@ -602,15 +696,19 @@ class TestGameView(arcade.View):
         if not self.player1.is_crouching and self.player1.current_action != "crouch":
             if self.p1_left:
                 self.player1.change_x = -self.player1.movement_speed
-                self.player1.facing_right = False
                 if not self.player1.is_jumping:
-                    self.player1.set_action("move_left")
+                    # Используем новый метод для определения действия
+                    action = self.player1.get_action_for_movement(True, False)
+                    if action:
+                        self.player1.set_action(action)
 
             if self.p1_right:
                 self.player1.change_x = self.player1.movement_speed
-                self.player1.facing_right = True
                 if not self.player1.is_jumping:
-                    self.player1.set_action("move_right")
+                    # Используем новый метод для определения действия
+                    action = self.player1.get_action_for_movement(False, True)
+                    if action:
+                        self.player1.set_action(action)
 
         if (not self.p1_left and not self.p1_right and
                 not self.player1.is_jumping and
@@ -638,15 +736,19 @@ class TestGameView(arcade.View):
         if not self.player2.is_crouching and self.player2.current_action != "crouch":
             if self.p2_left:
                 self.player2.change_x = -self.player2.movement_speed
-                self.player2.facing_right = False
                 if not self.player2.is_jumping:
-                    self.player2.set_action("move_left")
+                    # Используем новый метод для определения действия
+                    action = self.player2.get_action_for_movement(True, False)
+                    if action:
+                        self.player2.set_action(action)
 
             if self.p2_right:
                 self.player2.change_x = self.player2.movement_speed
-                self.player2.facing_right = True
                 if not self.player2.is_jumping:
-                    self.player2.set_action("move_right")
+                    # Используем новый метод для определения действия
+                    action = self.player2.get_action_for_movement(False, True)
+                    if action:
+                        self.player2.set_action(action)
 
         if (not self.p2_left and not self.p2_right and
                 not self.player2.is_jumping and
@@ -669,12 +771,15 @@ class TestGameView(arcade.View):
             self.p2_down_was_pressed = False
 
         # Физика
-        self.physics1.update()
-        self.physics2.update()
+        if self.physics1 and self.physics2:
+            self.physics1.update()
+            self.physics2.update()
 
         # Обновление персонажей
-        self.player1.update()
-        self.player2.update()
+        if self.player1:
+            self.player1.update()
+        if self.player2:
+            self.player2.update()
 
     def on_key_press(self, key, modifiers):
         # Игрок 1 - WASD

@@ -1,5 +1,14 @@
 import arcade
 
+# Константы для окна
+SCREEN_WIDTH = 1600
+SCREEN_HEIGHT = 900
+SCREEN_TITLE = "Arcade Game"
+
+# Константы для игры
+GRAVITY = 0.5
+GROUND_LEVEL = 150
+
 # База данных персонажей
 CHARACTERS_DB = {
     "DIO": {
@@ -18,6 +27,7 @@ CHARACTERS_DB = {
         "animation_speed": 5,
         "movement_speed": 3,
         "jump_speed": 15,
+        "sprite_scale": 2,
         "color": arcade.color.YELLOW
     },
 
@@ -37,15 +47,14 @@ CHARACTERS_DB = {
         "animation_speed": 5,
         "movement_speed": 3,
         "jump_speed": 15,
+        "sprite_scale": 2,
         "color": arcade.color.BLUE
     },
 }
 
-
 # Функция для получения списка доступных персонажей
 def get_available_characters():
     return list(CHARACTERS_DB.keys())
-
 
 # Функция для получения информации о персонаже
 def get_character_info(character_name):
@@ -56,23 +65,27 @@ def get_character_info(character_name):
             "color": data["color"],
             "health": data["health"],
             "stand": data["stand_name"],
-            "crouch_freeze_frame": data.get("crouch_freeze_frame", None)
+            "crouch_freeze_frame": data.get("crouch_freeze_frame", None),
+            "sprite_scale": data.get("sprite_scale", 0.5)
         }
     return None
-
 
 # Функция для проверки существования персонажа
 def character_exists(character_name):
     return character_name in CHARACTERS_DB
 
-
 # Функция для получения данных персонажа
 def get_character_data(character_name):
     return CHARACTERS_DB.get(character_name, None)
-
 
 # Функция для получения кадра заморозки приседания
 def get_crouch_freeze_frame(character_name):
     if character_name in CHARACTERS_DB:
         return CHARACTERS_DB[character_name].get("crouch_freeze_frame", None)
     return None
+
+# Функция для получения масштаба спрайта
+def get_sprite_scale(character_name):
+    if character_name in CHARACTERS_DB:
+        return CHARACTERS_DB[character_name].get("sprite_scale", 0.5)
+    return 0.5

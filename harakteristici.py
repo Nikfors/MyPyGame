@@ -21,12 +21,27 @@ CHARACTERS_DB = {
             "move_right": (54, 69),
             "move_left": (70, 85),
             "jump": (103, 115),
-            "crouch": (42, 49),  # Диапазон для приседания
+            "crouch": (42, 49),
+            "dash_forward": (86, 93),
+            "dash_backward": (94, 101),
         },
-        "crouch_freeze_frame": 45,  # Кадр на котором замираем при приседании
-        "animation_speed": 5,
-        "movement_speed": 3,
-        "jump_speed": 15,
+        # Индивидуальная скорость анимации для каждого действия
+        "animation_speeds": {
+            "idle": 5,           # Медленная анимация бездействия
+            "move_right": 4,      # Средняя скорость движения
+            "move_left": 4,       # Средняя скорость движения
+            "jump": 4,            # Быстрая анимация прыжка
+            "crouch": 5,          # Средняя скорость приседания
+            "dash_forward": 4,    # Очень быстрая анимация рывка (чтобы все кадры успели проиграться)
+            "dash_backward": 4,   # Очень быстрая анимация рывка
+        },
+        "crouch_freeze_frame": 45,
+        "animation_speed": 5,      # Базовая скорость (будет использоваться если нет индивидуальной)
+        "movement_speed": 4,
+        "jump_speed": 10,
+        "dash_speed": 11,          # Увеличил скорость рывка
+        "dash_distance": SCREEN_WIDTH // 3,
+        "dash_cooldown": 50,
         "sprite_scale": 2,
         "color": arcade.color.YELLOW
     },
@@ -41,12 +56,27 @@ CHARACTERS_DB = {
             "move_right": (37, 52),
             "move_left": (53, 68),
             "jump": (84, 99),
-            "crouch": (26, 36),  # Диапазон для приседания
+            "crouch": (26, 36),
+            "dash_forward": (69, 75),
+            "dash_backward": (76, 82),
         },
-        "crouch_freeze_frame": 31,  # Кадр на котором замираем при приседании
+        # Индивидуальная скорость анимации для каждого действия
+        "animation_speeds": {
+            "idle": 7,
+            "move_right": 5,
+            "move_left": 5,
+            "jump": 3,
+            "crouch": 5,
+            "dash_forward": 2,     # Быстрая анимация рывка
+            "dash_backward": 2,     # Быстрая анимация рывка
+        },
+        "crouch_freeze_frame": 31,
         "animation_speed": 5,
         "movement_speed": 3,
-        "jump_speed": 15,
+        "jump_speed": 10,
+        "dash_speed": 12,
+        "dash_distance": 150,
+        "dash_cooldown": 35,
         "sprite_scale": 2,
         "color": arcade.color.BLUE
     },
@@ -66,7 +96,11 @@ def get_character_info(character_name):
             "health": data["health"],
             "stand": data["stand_name"],
             "crouch_freeze_frame": data.get("crouch_freeze_frame", None),
-            "sprite_scale": data.get("sprite_scale", 0.5)
+            "sprite_scale": data.get("sprite_scale", 0.5),
+            "dash_speed": data.get("dash_speed", 8),
+            "dash_distance": data.get("dash_distance", 100),
+            "dash_cooldown": data.get("dash_cooldown", 45),
+            "animation_speeds": data.get("animation_speeds", {})
         }
     return None
 
@@ -77,6 +111,17 @@ def character_exists(character_name):
 # Функция для получения данных персонажа
 def get_character_data(character_name):
     return CHARACTERS_DB.get(character_name, None)
+
+# Функция для получения скорости анимации для конкретного действия
+def get_action_animation_speed(character_name, action):
+    if character_name in CHARACTERS_DB:
+        character_data = CHARACTERS_DB[character_name]
+        # Сначала проверяем индивидуальные скорости
+        if "animation_speeds" in character_data and action in character_data["animation_speeds"]:
+            return character_data["animation_speeds"][action]
+        # Если нет индивидуальной, возвращаем базовую скорость
+        return character_data.get("animation_speed", 5)
+    return 5
 
 # Функция для получения кадра заморозки приседания
 def get_crouch_freeze_frame(character_name):

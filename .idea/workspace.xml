@@ -4,8 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="edc059fa-8a4a-44bb-87ee-22a73f0e2ec1" name="Changes" comment="Добавлено меню выбора режима.">
+    <list default="true" id="edc059fa-8a4a-44bb-87ee-22a73f0e2ec1" name="Changes" comment="Доработан тестовый режим: теперь персонажи всегда смотрят друг на друга.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/harakteristici.py" beforeDir="false" afterPath="$PROJECT_DIR$/harakteristici.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -135,8 +136,8 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.main" />
-        <item itemvalue="Python.test" />
         <item itemvalue="Python.harakteristici" />
+        <item itemvalue="Python.test" />
       </list>
     </recent_temporary>
   </component>
@@ -235,7 +236,15 @@
       <option name="project" value="LOCAL" />
       <updated>1771540435181</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Доработан тестовый режим: теперь персонажи всегда смотрят друг на друга.">
+      <option name="closed" value="true" />
+      <created>1771543137014</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1771543137014</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -248,6 +257,7 @@
     <MESSAGE value="оптимизация программы для удобного добовления персонажей, добавлен выбор персонажей, Новый персонаж: Джотаро." />
     <MESSAGE value="добавлена возможность присесть" />
     <MESSAGE value="Добавлено меню выбора режима." />
-    <option name="LAST_COMMIT_MESSAGE" value="Добавлено меню выбора режима." />
+    <MESSAGE value="Доработан тестовый режим: теперь персонажи всегда смотрят друг на друга." />
+    <option name="LAST_COMMIT_MESSAGE" value="Доработан тестовый режим: теперь персонажи всегда смотрят друг на друга." />
   </component>
 </project>

@@ -1,12 +1,12 @@
 import arcade
 
 # Константы для окна
-SCREEN_WIDTH = 1600
-SCREEN_HEIGHT = 900
+SCREEN_WIDTH = 1536
+SCREEN_HEIGHT = 896
 SCREEN_TITLE = "Arcade Game"
 
 # Константы для игры
-GRAVITY = 0.5
+GRAVITY = 1
 GROUND_LEVEL = 150
 
 # База данных персонажей
@@ -24,24 +24,29 @@ CHARACTERS_DB = {
             "crouch": (42, 49),
             "dash_forward": (86, 93),
             "dash_backward": (94, 101),
+            "stand_summon": (129, 137),
         },
-        # Индивидуальная скорость анимации для каждого действия
+        "jump_loop": (111, 112),
+        # Циклы для рывков персонажа
+        "dash_forward_loop": (88, 91),
+        "dash_backward_loop": (96, 99),
         "animation_speeds": {
-            "idle": 5,           # Медленная анимация бездействия
-            "move_right": 4,      # Средняя скорость движения
-            "move_left": 4,       # Средняя скорость движения
-            "jump": 4,            # Быстрая анимация прыжка
-            "crouch": 5,          # Средняя скорость приседания
-            "dash_forward": 4,    # Очень быстрая анимация рывка (чтобы все кадры успели проиграться)
-            "dash_backward": 4,   # Очень быстрая анимация рывка
+            "idle": 6,
+            "move_right": 5,
+            "move_left": 5,
+            "jump": 3,
+            "crouch": 5,
+            "dash_forward": 4,
+            "dash_backward": 4,
+            "stand_summon": 5,
         },
         "crouch_freeze_frame": 45,
-        "animation_speed": 5,      # Базовая скорость (будет использоваться если нет индивидуальной)
+        "animation_speed": 5,
         "movement_speed": 4,
-        "jump_speed": 10,
-        "dash_speed": 11,          # Увеличил скорость рывка
-        "dash_distance": SCREEN_WIDTH // 3,
-        "dash_cooldown": 50,
+        "jump_speed": 15,
+        "dash_speed": 15,
+        "dash_distance": 220,
+        "dash_cooldown": 40,
         "sprite_scale": 2,
         "color": arcade.color.YELLOW
     },
@@ -59,77 +64,135 @@ CHARACTERS_DB = {
             "crouch": (26, 36),
             "dash_forward": (69, 75),
             "dash_backward": (76, 82),
+            "stand_summon": (125, 136),
         },
-        # Индивидуальная скорость анимации для каждого действия
+        "jump_loop": (94, 95),
+        # Циклы для рывков персонажа
+        "dash_forward_loop": (71, 73),
+        "dash_backward_loop": (78, 80),
         "animation_speeds": {
-            "idle": 7,
+            "idle": 8,
             "move_right": 5,
             "move_left": 5,
             "jump": 3,
             "crouch": 5,
-            "dash_forward": 2,     # Быстрая анимация рывка
-            "dash_backward": 2,     # Быстрая анимация рывка
+            "dash_forward": 4,
+            "dash_backward": 2,
+            "stand_summon": 3,
         },
         "crouch_freeze_frame": 31,
         "animation_speed": 5,
         "movement_speed": 3,
-        "jump_speed": 10,
+        "jump_speed": 15,
         "dash_speed": 12,
-        "dash_distance": 150,
+        "dash_distance": 220,
         "dash_cooldown": 35,
         "sprite_scale": 2,
         "color": arcade.color.BLUE
     },
 }
 
-# Функция для получения списка доступных персонажей
+# База данных стендов
+STANDS_DB = {
+    "DIO": {
+        "display_name": "The World",
+        "folder_name": "TheWorld",
+        "file_prefix": "TheWorld",
+        "frame_ranges": {
+            "idle": (0, 4),
+            "move_forward": (23, 24),
+            "move_backward": (17, 18),
+            "jump": (38, 39),
+            "dash_forward": (27, 31),
+            "dash_backward": (33, 37),
+            "summon": (40, 45),
+        },
+        "jump_loop": (38, 39),
+        # Циклы для рывков стенда
+        "dash_forward_loop": (28, 29),
+        "dash_backward_loop": (34, 35),
+        "animation_speeds": {
+            "idle": 7,
+            "move_forward": 4,
+            "move_backward": 4,
+            "jump": 3,
+            "dash_forward": 9,
+            "dash_backward": 7,
+            "summon": 6,
+        },
+        "sprite_scale": 2,
+        "offset_x": 30,
+        "offset_y": 0,
+        "color": arcade.color.GOLD
+    },
+
+    "JotaroKujo": {
+        "display_name": "Star Platinum",
+        "folder_name": "StarPlatinum",
+        "file_prefix": "SP",
+        "frame_ranges": {
+            "idle": (0, 19),
+            "move_forward": (41, 47),
+            "move_backward": (49, 55),
+            "jump": (69, 83),
+            "dash_forward": (56, 62),
+            "dash_backward": (63, 68),
+            "summon": (99, 110),
+        },
+        "jump_loop": (78, 79),
+        # Циклы для рывков стенда
+        "dash_forward_loop": (57, 58),
+        "dash_backward_loop": (64, 65),
+        "animation_speeds": {
+            "idle": 7,
+            "move_forward": 5,
+            "move_backward": 5,
+            "jump": 3,
+            "dash_forward": 6,
+            "dash_backward": 6,
+            "summon": 3,
+        },
+        "sprite_scale": 2,
+        "offset_x": -40,
+        "offset_y": 0,
+        "color": arcade.color.PURPLE
+    },
+}
+
 def get_available_characters():
     return list(CHARACTERS_DB.keys())
 
-# Функция для получения информации о персонаже
 def get_character_info(character_name):
     if character_name in CHARACTERS_DB:
         data = CHARACTERS_DB[character_name]
-        return {
-            "display_name": data["display_name"],
-            "color": data["color"],
-            "health": data["health"],
-            "stand": data["stand_name"],
-            "crouch_freeze_frame": data.get("crouch_freeze_frame", None),
-            "sprite_scale": data.get("sprite_scale", 0.5),
-            "dash_speed": data.get("dash_speed", 8),
-            "dash_distance": data.get("dash_distance", 100),
-            "dash_cooldown": data.get("dash_cooldown", 45),
-            "animation_speeds": data.get("animation_speeds", {})
-        }
+        return data
     return None
 
-# Функция для проверки существования персонажа
 def character_exists(character_name):
     return character_name in CHARACTERS_DB
 
-# Функция для получения данных персонажа
 def get_character_data(character_name):
     return CHARACTERS_DB.get(character_name, None)
 
-# Функция для получения скорости анимации для конкретного действия
+def get_stand_data(character_name):
+    return STANDS_DB.get(character_name, None)
+
+def stand_exists(character_name):
+    return character_name in STANDS_DB
+
 def get_action_animation_speed(character_name, action):
     if character_name in CHARACTERS_DB:
         character_data = CHARACTERS_DB[character_name]
-        # Сначала проверяем индивидуальные скорости
         if "animation_speeds" in character_data and action in character_data["animation_speeds"]:
             return character_data["animation_speeds"][action]
-        # Если нет индивидуальной, возвращаем базовую скорость
         return character_data.get("animation_speed", 5)
     return 5
 
-# Функция для получения кадра заморозки приседания
 def get_crouch_freeze_frame(character_name):
     if character_name in CHARACTERS_DB:
         return CHARACTERS_DB[character_name].get("crouch_freeze_frame", None)
     return None
 
-# Функция для получения масштаба спрайта
 def get_sprite_scale(character_name):
     if character_name in CHARACTERS_DB:
         return CHARACTERS_DB[character_name].get("sprite_scale", 0.5)

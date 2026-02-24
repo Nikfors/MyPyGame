@@ -4,10 +4,132 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="edc059fa-8a4a-44bb-87ee-22a73f0e2ec1" name="Changes" comment="Доработан тестовый режим: теперь персонажи всегда смотрят друг на друга.">
+    <list default="true" id="edc059fa-8a4a-44bb-87ee-22a73f0e2ec1" name="Changes" comment="Добавлен рывок">
+      <change afterPath="$PROJECT_DIR$/Лого/fon_menu.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Лого/jojo_logo.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/harakteristici.py" beforeDir="false" afterPath="$PROJECT_DIR$/harakteristici.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-0.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-1.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-10.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-100.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-101.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-102.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-103.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-104.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-105.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-106.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-107.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-108.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-109.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-11.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-110.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-111.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-112.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-113.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-114.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-115.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-116.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-117.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-118.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-119.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-12.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-120.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-121.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-122.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-123.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-124.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-13.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-14.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-15.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-16.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-17.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-18.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-19.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-2.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-20.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-21.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-22.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-23.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-24.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-25.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-26.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-27.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-28.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-29.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-3.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-30.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-31.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-32.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-33.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-34.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-35.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-36.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-37.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-38.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-39.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-4.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-40.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-41.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-42.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-43.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-44.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-45.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-47.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-48.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-49.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-5.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-54.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-55.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-56.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-57.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-58.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-59.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-6.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-60.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-61.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-62.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-63.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-64.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-65.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-66.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-67.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-68.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-69.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-7.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-70.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-71.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-72.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-73.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-74.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-75.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-76.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-77.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-78.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-79.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-8.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-80.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-81.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-82.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-83.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-84.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-85.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-86.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-87.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-88.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-89.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-9.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-90.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-91.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-92.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-93.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-94.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-95.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-96.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-97.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-98.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Спрайты/DIO/DIO_1-99.png" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,25 +166,27 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.harakteristici.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.harakteristici.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.test.executor": "Run",
+    "Python.tests.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "master"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;ChangesTree.GroupingKeys&quot;: [
-      &quot;directory&quot;,
-      &quot;repository&quot;
+  "keyToStringList": {
+    "ChangesTree.GroupingKeys": [
+      "directory",
+      "repository"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\user\PycharmProjects\MyPyGame\Лого" />
       <recent name="C:\Users\user\PycharmProjects\MyPyGame" />
     </key>
   </component>
@@ -133,9 +257,32 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="tests" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="MyPyGame" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
         <item itemvalue="Python.main" />
+        <item itemvalue="Python.tests" />
         <item itemvalue="Python.harakteristici" />
         <item itemvalue="Python.test" />
       </list>
@@ -244,7 +391,15 @@
       <option name="project" value="LOCAL" />
       <updated>1771543137014</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="Добавлен рывок">
+      <option name="closed" value="true" />
+      <created>1771702927555</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1771702927555</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -258,6 +413,7 @@
     <MESSAGE value="добавлена возможность присесть" />
     <MESSAGE value="Добавлено меню выбора режима." />
     <MESSAGE value="Доработан тестовый режим: теперь персонажи всегда смотрят друг на друга." />
-    <option name="LAST_COMMIT_MESSAGE" value="Доработан тестовый режим: теперь персонажи всегда смотрят друг на друга." />
+    <MESSAGE value="Добавлен рывок" />
+    <option name="LAST_COMMIT_MESSAGE" value="Добавлен рывок" />
   </component>
 </project>

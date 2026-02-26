@@ -1,5 +1,11 @@
 import arcade
 import random
+import requests
+from network import GameServer, GameClient
+import pickle
+import time
+import socket
+import threading
 from pathlib import Path
 from harakteristici import (
     SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE, GRAVITY, GROUND_LEVEL,
@@ -23,6 +29,9 @@ MENU_SELECTED_COLOR = arcade.color.YELLOW
 ATTACK_COOLDOWN = 20
 HIT_COOLDOWN = 30
 KNOCKBACK_DURATION = 10
+
+
+LOBBY_SERVER_URL = "http://127.0.0.1:5000"
 
 
 class StartView(arcade.View):
@@ -942,6 +951,7 @@ class Character(arcade.Sprite):
 
         self.update_animation()
 
+
 class ModeMenuView(arcade.View):
     def __init__(self):
         super().__init__()
@@ -1037,8 +1047,14 @@ class ModeMenuView(arcade.View):
                     self.anim_state = "idle"
                 elif self.anim_state == "outro" and self.current_frame >= 13:
                     self.current_frame = 13
-                    print("Переход к выбору персонажа")
-                    self.window.show_view(TestCharacterSelectView())
+                    print("Переход по выбору режима")
+                    # Проверяем, какой режим был выбран
+                    if self.selected_index == 0:
+                        print("Переход к выбору персонажа для тестового режима")
+                        self.window.show_view(TestCharacterSelectView())
+                    else:  # selected_index == 1
+                        print("Переход в онлайн меню")
+                        self.window.show_view(OnlineMenuView())
 
                 if self.current_frame < len(self.darby_textures):
                     self.darby_sprite.texture = self.darby_textures[self.current_frame]
@@ -1086,12 +1102,678 @@ class ModeMenuView(arcade.View):
             self.selected_index = 1
             print("Выбран онлайн режим")
         elif key == arcade.key.ENTER:
-            if self.selected_index == 0:
-                print("Запуск тестового режима")
-                self.anim_state = "outro"
-            else:
-                print("Онлайн пока недоступен")
+            print(f"Запуск режима: {self.modes[self.selected_index]}")
+            self.anim_state = "outro"
+            self.current_frame = 4  # Начинаем с 4 кадра, где заканчивается intr
 
+
+class OnlineMenuView(arcade.View):
+    def __init__(self):
+        super().__init__()
+        self.options = ["Создать комнату", "Подключиться к лобби", "Назад"]
+        self.selected_index = 0
+        self.status_message = ""
+        self.status_color = arcade.color.WHITE
+
+        # Для создания комнаты
+        self.server = None
+        self.server_thread = None
+        self.room_id = None
+
+        # Для подключения
+        self.client = None
+        self.available_rooms = []
+        self.show_room_list = False
+        self.selected_room = 0
+        self.refresh_timer = 0
+
+        self.bg_sprite_list = arcade.SpriteList()
+        bg_path = Path("Лого") / "fon_menu.png"
+
+        orig_w, orig_h = 128, 64
+        self.bg_scale = SCREEN_WIDTH / (5 * orig_w)
+        self.tile_w, self.tile_h = orig_w * self.bg_scale, orig_h * self.bg_scale
+        self.rows = 8
+
+        if bg_path.exists():
+            for r in range(self.rows):
+                for c in range(5):
+                    s = arcade.Sprite(str(bg_path), scale=self.bg_scale)
+                    s.center_x = c * self.tile_w + (self.tile_w / 2)
+                    s.center_y = r * self.tile_h + (self.tile_h / 2)
+                    self.bg_sprite_list.append(s)
+
+    def on_update(self, delta_time):
+        for s in self.bg_sprite_list:
+            s.center_y -= 3.0
+            if s.top < 0:
+                s.center_y += self.rows * self.tile_h
+
+        # Автоматическое обновление списка комнат
+        if self.show_room_list:
+            self.refresh_timer += delta_time
+            if self.refresh_timer >= 2.0:  # Обновляем каждые 2 секунды
+                self.refresh_timer = 0
+                self.refresh_room_list()
+
+    def on_draw(self):
+        self.clear()
+        # Отрисовка фона
+        self.bg_sprite_list.draw()
+        arcade.draw_rect_filled(
+            arcade.LRBT(0, SCREEN_WIDTH, 0, SCREEN_HEIGHT),
+            (0, 0, 0, 180)
+        )
+
+        if self.show_room_list:
+            self.draw_room_list()
+        else:
+            self.draw_main_menu()
+
+        if self.status_message:
+            arcade.draw_text(self.status_message, SCREEN_WIDTH // 2, 100,
+                             self.status_color, 18, anchor_x="center")
+
+    def draw_main_menu(self):
+        arcade.draw_text("ОНЛАЙН РЕЖИМ", SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100,
+                         arcade.color.GOLD, 50, anchor_x="center", bold=True)
+
+        for i, option in enumerate(self.options):
+            color = MENU_SELECTED_COLOR if i == self.selected_index else MENU_FONT_COLOR
+            text = f">> {option} <<" if i == self.selected_index else option
+            arcade.draw_text(text, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - (i * 60),
+                             color, 30, anchor_x="center")
+
+    def draw_room_list(self):
+        arcade.draw_text("ДОСТУПНЫЕ КОМНАТЫ", SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100,
+                         arcade.color.GOLD, 40, anchor_x="center", bold=True)
+
+        if not self.available_rooms:
+            arcade.draw_text("Нет доступных комнат", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2,
+                             arcade.color.GRAY, 24, anchor_x="center")
+        else:
+            for i, room in enumerate(self.available_rooms):
+                y = SCREEN_HEIGHT // 2 + 50 - i * 60
+                color = MENU_SELECTED_COLOR if i == self.selected_room else MENU_FONT_COLOR
+                text = f"Комната {room['room_id']} - {room['host_name']}"
+                if i == self.selected_room:
+                    text = f">> {text} <<"
+                arcade.draw_text(text, SCREEN_WIDTH // 2, y, color, 20, anchor_x="center")
+
+        arcade.draw_text("ESC - назад | R - обновить | ENTER - подключиться",
+                         SCREEN_WIDTH // 2, 150, arcade.color.GRAY, 16, anchor_x="center")
+
+    def on_key_press(self, key, modifiers):
+        if self.show_room_list:
+            self.handle_room_list_keys(key)
+        else:
+            self.handle_main_menu_keys(key)
+
+    def handle_main_menu_keys(self, key):
+        if key == arcade.key.UP:
+            self.selected_index = (self.selected_index - 1) % len(self.options)
+        elif key == arcade.key.DOWN:
+            self.selected_index = (self.selected_index + 1) % len(self.options)
+        elif key == arcade.key.ENTER:
+            self.handle_selection()
+        elif key == arcade.key.ESCAPE:
+            self.window.show_view(ModeMenuView())
+
+    def handle_room_list_keys(self, key):
+        if key == arcade.key.UP:
+            self.selected_room = (self.selected_room - 1) % max(1, len(self.available_rooms))
+        elif key == arcade.key.DOWN:
+            self.selected_room = (self.selected_room + 1) % max(1, len(self.available_rooms))
+        elif key == arcade.key.ENTER and self.available_rooms:
+            self.join_selected_room()
+        elif key == arcade.key.R:
+            self.refresh_room_list()
+        elif key == arcade.key.ESCAPE:
+            self.show_room_list = False
+            self.available_rooms = []
+
+    def handle_selection(self):
+        if self.selected_index == 0:
+            self.create_room()
+        elif self.selected_index == 1:
+            self.show_room_list = True
+            self.refresh_room_list()
+        elif self.selected_index == 2:
+            self.window.show_view(ModeMenuView())
+
+    def create_room(self):
+        """Создание комнаты"""
+        try:
+            # 1. Регистрируем комнату на Flask
+            response = requests.post(f"{LOBBY_SERVER_URL}/create_room",
+                                     json={"player_name": "Player 1"})
+
+            if response.status_code == 200:
+                data = response.json()
+                self.room_id = data['room_id']
+                self.status_message = f"Комната {self.room_id} создана! Ожидание игрока..."
+                self.status_color = arcade.color.GREEN
+
+                # 2. Запускаем сервер в отдельном потоке
+                self.server = GameServer()
+                self.server_thread = threading.Thread(target=self._run_server, daemon=True)
+                self.server_thread.start()
+
+                # 3. Переходим в ожидание
+                self.window.show_view(OnlineWaitingView(self.room_id, is_host=True))
+            else:
+                self.status_message = "Ошибка создания комнаты"
+                self.status_color = arcade.color.RED
+        except Exception as e:
+            self.status_message = f"Ошибка: {e}"
+            self.status_color = arcade.color.RED
+
+    def _run_server(self):
+        """Запуск сервера в отдельном потоке"""
+        if self.server and self.server.start():
+            # Когда игрок подключился, запускаем игру
+            self.window.show_view(OnlineGameView(self.server, is_host=True))
+        else:
+            self.status_message = "Ошибка запуска сервера"
+            self.status_color = arcade.color.RED
+
+    def refresh_room_list(self):
+        """Обновление списка комнат"""
+        try:
+            response = requests.get(f"{LOBBY_SERVER_URL}/get_rooms")
+            if response.status_code == 200:
+                self.available_rooms = response.json()
+                self.status_message = f"Найдено комнат: {len(self.available_rooms)}"
+                self.status_color = arcade.color.GREEN
+            else:
+                self.status_message = "Ошибка получения списка"
+                self.status_color = arcade.color.RED
+        except Exception as e:
+            self.status_message = f"Ошибка: {e}"
+            self.status_color = arcade.color.RED
+            self.available_rooms = []
+
+    def join_selected_room(self):
+        """Подключение к выбранной комнате"""
+        if not self.available_rooms:
+            return
+
+        room = self.available_rooms[self.selected_room]
+
+        try:
+            # 1. Сообщаем серверу о подключении
+            response = requests.post(f"{LOBBY_SERVER_URL}/join_room/{room['room_id']}",
+                                     json={"player_name": "Player 2"})
+
+            if response.status_code == 200:
+                data = response.json()
+                host_ip = data['host_ip']
+
+                self.status_message = f"Подключение к {host_ip}..."
+                self.status_color = arcade.color.YELLOW
+
+                # 2. Подключаемся к серверу
+                self.client = GameClient()
+                if self.client.connect(host_ip):
+                    self.window.show_view(OnlineGameView(self.client, is_host=False))
+                else:
+                    self.status_message = "Ошибка подключения к серверу"
+                    self.status_color = arcade.color.RED
+            else:
+                self.status_message = "Комната уже недоступна"
+                self.status_color = arcade.color.RED
+        except Exception as e:
+            self.status_message = f"Ошибка: {e}"
+            self.status_color = arcade.color.RED
+
+
+class OnlineWaitingView(arcade.View):
+    def __init__(self, room_id, is_host=True):
+        super().__init__()
+        self.room_id = room_id
+        self.is_host = is_host
+        self.waiting_text = "Ожидание подключения игрока..."
+        self.animation_timer = 0
+        self.dot_count = 0
+
+        self.bg_sprite_list = arcade.SpriteList()
+        bg_path = Path("Лого") / "fon_menu.png"
+        orig_w, orig_h = 128, 64
+        self.bg_scale = SCREEN_WIDTH / (5 * orig_w)
+        self.tile_w, self.tile_h = orig_w * self.bg_scale, orig_h * self.bg_scale
+        self.rows = 8
+
+        if bg_path.exists():
+            for r in range(self.rows):
+                for c in range(5):
+                    s = arcade.Sprite(str(bg_path), scale=self.bg_scale)
+                    s.center_x = c * self.tile_w + (self.tile_w / 2)
+                    s.center_y = r * self.tile_h + (self.tile_h / 2)
+                    self.bg_sprite_list.append(s)
+
+    def on_update(self, delta_time):
+        for s in self.bg_sprite_list:
+            s.center_y -= 2.0
+            if s.top < 0:
+                s.center_y += self.rows * self.tile_h
+
+        # Анимация точек
+        self.animation_timer += delta_time
+        if self.animation_timer >= 0.5:
+            self.animation_timer = 0
+            self.dot_count = (self.dot_count + 1) % 4
+
+    def on_draw(self):
+        self.clear()
+        self.bg_sprite_list.draw()
+        arcade.draw_rect_filled(
+            arcade.LRBT(0, SCREEN_WIDTH, 0, SCREEN_HEIGHT),
+            (0, 0, 0, 200)
+        )
+
+        dots = "." * self.dot_count
+        arcade.draw_text(f"{self.waiting_text}{dots}",
+                         SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2,
+                         arcade.color.WHITE, 36, anchor_x="center")
+
+        arcade.draw_text(f"Комната: {self.room_id}",
+                         SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100,
+                         arcade.color.GRAY, 24, anchor_x="center")
+
+        if self.is_host:
+            arcade.draw_text("ESC - отмена",
+                             SCREEN_WIDTH // 2, 100,
+                             arcade.color.GRAY, 16, anchor_x="center")
+
+    def on_key_press(self, key, modifiers):
+        if key == arcade.key.ESCAPE and self.is_host:
+            # Отмена ожидания
+            self.window.show_view(OnlineMenuView())
+
+
+class OnlineGameView(arcade.View):
+    def __init__(self, network_connection, is_host=True):
+        super().__init__()
+        self.network = network_connection
+        self.is_host = is_host
+
+        # Выбор персонажей (для простоты используем DIO и Jotaro)
+        self.p1_character = "DIO" if is_host else "JotaroKujo"
+        self.p2_character = "JotaroKujo" if is_host else "DIO"
+
+        self.setup_game()
+
+        # Для сетевой синхронизации
+        self.last_send_time = 0
+        self.opponent_state = None
+
+    def setup_game(self):
+        map_index = random.randint(0, 3)
+        map_path = Path("Карта") / f"jojo_map_{map_index}.png"
+
+        self.background = None
+        if map_path.exists():
+            self.background = arcade.load_texture(str(map_path))
+
+        # Создаем игроков
+        self.player1 = Character(self.p1_character, SCREEN_WIDTH // 4, GROUND_LEVEL, player_number=1)
+        self.player2 = Character(self.p2_character, 3 * SCREEN_WIDTH // 4, GROUND_LEVEL, player_number=2)
+
+        self.player1.set_opponent(self.player2)
+        self.player2.set_opponent(self.player1)
+
+        self.player1_list = arcade.SpriteList()
+        self.player1_list.append(self.player1)
+
+        self.player2_list = arcade.SpriteList()
+        self.player2_list.append(self.player2)
+
+        self.physics1 = arcade.PhysicsEngineSimple(self.player1, None)
+        self.physics2 = arcade.PhysicsEngineSimple(self.player2, None)
+
+        # Флаги управления
+        self.setup_controls()
+
+    def setup_controls(self):
+        # Для хоста (игрок 1)
+        if self.is_host:
+            self.left = False
+            self.right = False
+            self.up = False
+            self.down = False
+            self.w_was_pressed = False
+            self.s_was_pressed = False
+            self.shift_was_pressed = False
+            self.attack_pressed = False
+        # Для гостя (игрок 2)
+        else:
+            self.left = False
+            self.right = False
+            self.up = False
+            self.down = False
+            self.up_was_pressed = False
+            self.down_was_pressed = False
+            self.shift_was_pressed = False
+            self.attack_pressed = False
+
+    def on_update(self, delta_time):
+        if not self.player1 or not self.player2:
+            return
+
+        # Обновление своего игрока
+        self.update_my_player()
+
+        # Отправка своего состояния
+        current_time = time.time()
+        if current_time - self.last_send_time > 0.05:  # 20 раз в секунду
+            self.send_my_state()
+            self.last_send_time = current_time
+
+        # Получение состояния противника
+        self.receive_opponent_state()
+
+        # Обновление физики
+        if self.physics1 and self.physics2:
+            self.physics1.update()
+            self.physics2.update()
+
+        # Обновление анимаций
+        if self.player1:
+            self.player1.update()
+            if self.player1.stand_active and self.player1.stand:
+                self.player1.stand.update()
+
+        if self.player2:
+            self.player2.update()
+            if self.player2.stand_active and self.player2.stand:
+                self.player2.stand.update()
+
+        # Проверка победы
+        self.check_winner()
+
+    def update_my_player(self):
+        if self.is_host:
+            self.update_player1()
+        else:
+            self.update_player2()
+
+    def update_player1(self):
+        # Логика управления для игрока 1
+        if not self.player1.is_summoning and not self.player1.is_hit:
+            if not self.player1.is_dashing and not self.player1.is_attacking:
+                self.player1.change_x = 0
+
+                if not self.player1.is_crouching:
+                    if self.left:
+                        self.player1.change_x = -self.player1.movement_speed
+                        if not self.player1.is_jumping:
+                            action = self.player1.get_action_for_movement(True, False)
+                            if action:
+                                self.player1.set_action(action)
+
+                    if self.right:
+                        self.player1.change_x = self.player1.movement_speed
+                        if not self.player1.is_jumping:
+                            action = self.player1.get_action_for_movement(False, True)
+                            if action:
+                                self.player1.set_action(action)
+
+                if (not self.left and not self.right and
+                        not self.player1.is_jumping and
+                        not self.player1.is_attacking and
+                        self.player1.current_action not in ["crouch"]):
+                    self.player1.set_action("idle")
+
+            # Прыжок
+            if self.up and not self.w_was_pressed:
+                if not self.player1.is_crouching and not self.player1.is_dashing and not self.player1.is_attacking:
+                    self.player1.jump()
+                self.w_was_pressed = True
+
+            # Приседание
+            if self.down and not self.s_was_pressed:
+                self.player1.crouch(True)
+                self.s_was_pressed = True
+            if not self.down and self.s_was_pressed:
+                self.player1.crouch(False)
+                self.s_was_pressed = False
+
+            # Рывок
+            if self.shift_was_pressed and not self.player1.is_dashing and self.player1.dash_cooldown == 0:
+                if self.left:
+                    self.player1.dash(-1)
+                elif self.right:
+                    self.player1.dash(1)
+                else:
+                    self.player1.dash()
+
+            # Атака
+            if self.attack_pressed and not self.player1.is_attacking:
+                self.player1.attack()
+        else:
+            self.player1.change_x = 0
+
+    def update_player2(self):
+        # Логика управления для игрока 2
+        if not self.player2.is_summoning and not self.player2.is_hit:
+            if not self.player2.is_dashing and not self.player2.is_attacking:
+                self.player2.change_x = 0
+
+                if not self.player2.is_crouching:
+                    if self.left:
+                        self.player2.change_x = -self.player2.movement_speed
+                        if not self.player2.is_jumping:
+                            action = self.player2.get_action_for_movement(True, False)
+                            if action:
+                                self.player2.set_action(action)
+
+                    if self.right:
+                        self.player2.change_x = self.player2.movement_speed
+                        if not self.player2.is_jumping:
+                            action = self.player2.get_action_for_movement(False, True)
+                            if action:
+                                self.player2.set_action(action)
+
+                if (not self.left and not self.right and
+                        not self.player2.is_jumping and
+                        not self.player2.is_attacking and
+                        self.player2.current_action not in ["crouch"]):
+                    self.player2.set_action("idle")
+
+            # Прыжок
+            if self.up and not self.up_was_pressed:
+                if not self.player2.is_crouching and not self.player2.is_dashing and not self.player2.is_attacking:
+                    self.player2.jump()
+                self.up_was_pressed = True
+
+            # Приседание
+            if self.down and not self.down_was_pressed:
+                self.player2.crouch(True)
+                self.down_was_pressed = True
+            if not self.down and self.down_was_pressed:
+                self.player2.crouch(False)
+                self.down_was_pressed = False
+
+            # Рывок
+            if self.shift_was_pressed and not self.player2.is_dashing and self.player2.dash_cooldown == 0:
+                if self.left:
+                    self.player2.dash(-1)
+                elif self.right:
+                    self.player2.dash(1)
+                else:
+                    self.player2.dash()
+
+            # Атака
+            if self.attack_pressed and not self.player2.is_attacking:
+                self.player2.attack()
+        else:
+            self.player2.change_x = 0
+
+    def send_my_state(self):
+        """Отправка состояния своего игрока"""
+        my_player = self.player1 if self.is_host else self.player2
+        state = {
+            'x': my_player.center_x,
+            'y': my_player.center_y,
+            'action': my_player.current_action,
+            'frame': my_player.current_frame,
+            'facing_right': my_player.facing_right,
+            'health': my_player.current_health,
+            'stand_active': my_player.stand_active
+        }
+
+        if isinstance(self.network, GameServer):
+            self.network.send_state(state)
+        elif isinstance(self.network, GameClient):
+            self.network.send_state(state)
+
+    def receive_opponent_state(self):
+        """Получение состояния противника"""
+        if isinstance(self.network, GameServer):
+            state = self.network.receive_state()
+        elif isinstance(self.network, GameClient):
+            state = self.network.receive_state()
+        else:
+            return
+
+        if state:
+            opponent = self.player2 if self.is_host else self.player1
+            opponent.center_x = state['x']
+            opponent.center_y = state['y']
+            opponent.current_action = state['action']
+            opponent.current_frame = state['frame']
+            opponent.facing_right = state['facing_right']
+            opponent.current_health = state['health']
+            opponent.stand_active = state['stand_active']
+
+    def check_winner(self):
+        if self.player1.current_health <= 0:
+            winner = "ИГРОК 2" if self.is_host else "ИГРОК 1"
+            self.show_game_over(f"{winner} ПОБЕДИЛ!")
+        elif self.player2.current_health <= 0:
+            winner = "ИГРОК 1" if self.is_host else "ИГРОК 2"
+            self.show_game_over(f"{winner} ПОБЕДИЛ!")
+
+    def show_game_over(self, message):
+        game_over_view = GameOverView(message)
+        self.window.show_view(game_over_view)
+        # Закрываем сетевое соединение
+        if isinstance(self.network, GameServer):
+            self.network.stop()
+        elif isinstance(self.network, GameClient):
+            self.network.disconnect()
+
+    def on_draw(self):
+        self.clear()
+
+        if self.background:
+            arcade.draw_texture_rect(
+                self.background,
+                arcade.XYWH(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2, SCREEN_WIDTH, SCREEN_HEIGHT)
+            )
+
+        # Рисуем землю
+        arcade.draw_line(0, GROUND_LEVEL, SCREEN_WIDTH, GROUND_LEVEL, arcade.color.GREEN, 3)
+
+        # Отрисовка
+        if self.player1:
+            self.player1.draw_stand()
+        if self.player2:
+            self.player2.draw_stand()
+
+        if self.player1:
+            self.player1_list.draw()
+        if self.player2:
+            self.player2_list.draw()
+
+        if self.player1:
+            self.player1.draw_health_bar()
+        if self.player2:
+            self.player2.draw_health_bar()
+
+        # Индикатор подключения
+        if hasattr(self.network, 'connected') and self.network.connected:
+            arcade.draw_text("● ONLINE", SCREEN_WIDTH - 150, SCREEN_HEIGHT - 30,
+                             arcade.color.GREEN, 16)
+
+        # Управление
+        if self.is_host:
+            arcade.draw_text("WASD + Shift (рывок) | Q - Стенд | R - Атака",
+                             SCREEN_WIDTH // 4, 80, arcade.color.CYAN, 14, anchor_x="center")
+        else:
+            arcade.draw_text("Стрелки + Shift (рывок) | NUM 1 - Стенд | Пробел - Атака",
+                             3 * SCREEN_WIDTH // 4, 80, arcade.color.ORANGE, 14, anchor_x="center")
+
+        arcade.draw_text("ESC - выход", SCREEN_WIDTH - 120, 30, arcade.color.GRAY, 14)
+
+    def on_key_press(self, key, modifiers):
+        if self.is_host:
+            # Управление для хоста (игрок 1)
+            if key == arcade.key.A:
+                self.left = True
+            elif key == arcade.key.D:
+                self.right = True
+            elif key == arcade.key.W:
+                self.up = True
+            elif key == arcade.key.S:
+                self.down = True
+            elif key == arcade.key.Q:
+                if self.player1:
+                    self.player1.toggle_stand()
+            elif key == arcade.key.LSHIFT or key == arcade.key.RSHIFT:
+                self.shift_was_pressed = True
+            elif key == arcade.key.R:
+                self.attack_pressed = True
+        else:
+            # Управление для гостя (игрок 2)
+            if key == arcade.key.LEFT:
+                self.left = True
+            elif key == arcade.key.RIGHT:
+                self.right = True
+            elif key == arcade.key.UP:
+                self.up = True
+            elif key == arcade.key.DOWN:
+                self.down = True
+            elif key == arcade.key.NUM_1:
+                if self.player2:
+                    self.player2.toggle_stand()
+            elif key == arcade.key.RCTRL:
+                self.shift_was_pressed = True
+            elif key == arcade.key.SPACE:
+                self.attack_pressed = True
+
+        if key == arcade.key.ESCAPE:
+            self.window.show_view(ModeMenuView())
+
+    def on_key_release(self, key, modifiers):
+        if self.is_host:
+            if key == arcade.key.A:
+                self.left = False
+            elif key == arcade.key.D:
+                self.right = False
+            elif key == arcade.key.W:
+                self.up = False
+                self.w_was_pressed = False
+            elif key == arcade.key.S:
+                self.down = False
+            elif key == arcade.key.LSHIFT or key == arcade.key.RSHIFT:
+                self.shift_was_pressed = False
+            elif key == arcade.key.R:
+                self.attack_pressed = False
+        else:
+            if key == arcade.key.LEFT:
+                self.left = False
+            elif key == arcade.key.RIGHT:
+                self.right = False
+            elif key == arcade.key.UP:
+                self.up = False
+                self.up_was_pressed = False
+            elif key == arcade.key.DOWN:
+                self.down = False
+            elif key == arcade.key.RCTRL:
+                self.shift_was_pressed = False
+            elif key == arcade.key.SPACE:
+                self.attack_pressed = False
 
 class TestCharacterSelectView(arcade.View):
     def __init__(self):

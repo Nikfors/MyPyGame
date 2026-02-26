@@ -1,5 +1,8 @@
 import arcade
 import random
+import requests
+import socket
+import threading
 from pathlib import Path
 from harakteristici import (
     SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE, GRAVITY, GROUND_LEVEL,
@@ -23,6 +26,9 @@ MENU_SELECTED_COLOR = arcade.color.YELLOW
 ATTACK_COOLDOWN = 20
 HIT_COOLDOWN = 30
 KNOCKBACK_DURATION = 10
+
+
+LOBBY_SERVER_URL = "http://127.0.0.1:5000"
 
 
 class StartView(arcade.View):
@@ -942,6 +948,7 @@ class Character(arcade.Sprite):
 
         self.update_animation()
 
+
 class ModeMenuView(arcade.View):
     def __init__(self):
         super().__init__()
@@ -1037,8 +1044,14 @@ class ModeMenuView(arcade.View):
                     self.anim_state = "idle"
                 elif self.anim_state == "outro" and self.current_frame >= 13:
                     self.current_frame = 13
-                    print("Переход к выбору персонажа")
-                    self.window.show_view(TestCharacterSelectView())
+                    print("Переход по выбору режима")
+                    # Проверяем, какой режим был выбран
+                    if self.selected_index == 0:
+                        print("Переход к выбору персонажа для тестового режима")
+                        self.window.show_view(TestCharacterSelectView())
+                    else:  # selected_index == 1
+                        print("Переход в онлайн меню")
+                        self.window.show_view(OnlineMenuView())
 
                 if self.current_frame < len(self.darby_textures):
                     self.darby_sprite.texture = self.darby_textures[self.current_frame]
@@ -1086,11 +1099,115 @@ class ModeMenuView(arcade.View):
             self.selected_index = 1
             print("Выбран онлайн режим")
         elif key == arcade.key.ENTER:
-            if self.selected_index == 0:
-                print("Запуск тестового режима")
-                self.anim_state = "outro"
+            print(f"Запуск режима: {self.modes[self.selected_index]}")
+            self.anim_state = "outro"
+            self.current_frame = 4  # Начинаем с 4 кадра, где заканчивается intr
+
+
+class OnlineMenuView(arcade.View):
+    def __init__(self):
+        super().__init__()
+        self.options = ["Создать комнату", "Подключиться к лобби", "Назад"]
+        self.selected_index = 0
+        self.status_message = ""
+
+        self.bg_sprite_list = arcade.SpriteList()
+        bg_path = Path("Лого") / "fon_menu.png"
+
+        orig_w, orig_h = 128, 64
+        self.bg_scale = SCREEN_WIDTH / (5 * orig_w)
+        self.tile_w, self.tile_h = orig_w * self.bg_scale, orig_h * self.bg_scale
+        self.rows = 8
+
+        if bg_path.exists():
+            for r in range(self.rows):
+                for c in range(5):
+                    s = arcade.Sprite(str(bg_path), scale=self.bg_scale)
+                    s.center_x = c * self.tile_w + (self.tile_w / 2)
+                    s.center_y = r * self.tile_h + (self.tile_h / 2)
+                    self.bg_sprite_list.append(s)
+
+    def on_update(self, delta_time):
+        for s in self.bg_sprite_list:
+            s.center_y -= 3.0
+            if s.top < 0:
+                s.center_y += self.rows * self.tile_h
+
+    def on_draw(self):
+        self.clear()
+        # Отрисовка фона
+        self.bg_sprite_list.draw()
+        arcade.draw_rect_filled(
+            arcade.LRBT(0, SCREEN_WIDTH, 0, SCREEN_HEIGHT),
+            (0, 0, 0, 180)
+        )
+
+        arcade.draw_text("ОНЛАЙН РЕЖИМ", SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100,
+                         arcade.color.GOLD, 50, anchor_x="center", bold=True)
+
+        for i, option in enumerate(self.options):
+            color = MENU_SELECTED_COLOR if i == self.selected_index else MENU_FONT_COLOR
+            text = f">> {option} <<" if i == self.selected_index else option
+            arcade.draw_text(text, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - (i * 60),
+                             color, 30, anchor_x="center")
+
+        if self.status_message:
+            arcade.draw_text(self.status_message, SCREEN_WIDTH // 2, 100,
+                             arcade.color.WHITE, 18, anchor_x="center")
+
+    def on_key_press(self, key, modifiers):
+        if key == arcade.key.UP:
+            self.selected_index = (self.selected_index - 1) % len(self.options)
+        elif key == arcade.key.DOWN:
+            self.selected_index = (self.selected_index + 1) % len(self.options)
+        elif key == arcade.key.ENTER:
+            self.handle_selection()
+
+    def handle_selection(self):
+        if self.selected_index == 0:
+            self.create_room_on_server()
+        elif self.selected_index == 1:
+            self.join_room_from_server()
+        elif self.selected_index == 2:
+            self.window.show_view(ModeMenuView())
+
+    def create_room_on_server(self):
+        """Регистрирует комнату во Flask и открывает сокет для игры"""
+        try:
+            # 1. Говорим Flask-серверу, что мы создаем комнату
+            response = requests.post(f"{LOBBY_SERVER_URL}/create_room",
+                                     json={"player_name": "Player 1"})
+
+            if response.status_code == 200:
+                self.status_message = "Комната создана во Flask! Ожидание игрока по сокету..."
+                # 2. Запускаем ожидание по сокету (как в прошлом примере)
+                threading.Thread(target=self._start_socket_server, daemon=True).start()
+        except Exception as e:
+            self.status_message = f"Ошибка связи с Flask: {e}"
+
+    def join_room_from_server(self):
+        """Получает список комнат из Flask и подключается к первой доступной"""
+        try:
+            self.status_message = "Поиск комнат..."
+            response = requests.get(f"{LOBBY_SERVER_URL}/get_rooms")
+            rooms = response.json()
+
+            if rooms:
+                host_ip = rooms[0]['host_ip']
+                self.status_message = f"Подключение к {host_ip}..."
+                threading.Thread(target=self._connect_to_socket, args=(host_ip,), daemon=True).start()
             else:
-                print("Онлайн пока недоступен")
+                self.status_message = "Свободных комнат не найдено."
+        except Exception as e:
+            self.status_message = f"Ошибка поиска: {e}"
+
+    def _start_socket_server(self):
+        # Логика сокет-сервера для самого боя
+        pass
+
+    def _connect_to_socket(self, ip):
+        # Логика подключения сокет-клиента
+        pass
 
 
 class TestCharacterSelectView(arcade.View):

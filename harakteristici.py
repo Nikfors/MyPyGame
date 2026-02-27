@@ -39,7 +39,14 @@ def character_exists(character_name):
     return character_name in CHARACTERS_DB
 
 def get_character_data(character_name):
-    return CHARACTERS_DB.get(character_name, None)
+    """Получение данных персонажа"""
+    if character_name in CHARACTERS_DB:
+        data = CHARACTERS_DB[character_name].copy()
+        # Убедимся, что hitbox_size есть
+        if "hitbox_size" not in data:
+            data["hitbox_size"] = (60, 120)  # Значение по умолчанию
+        return data
+    return None
 
 def get_stand_data(character_name):
     return STANDS_DB.get(character_name, None)

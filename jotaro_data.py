@@ -5,7 +5,25 @@ JOTARO_CHARACTER = {
     "file_prefix": "Jot",
     "health": 120,
     "stand_name": "Star Platinum",
+    "hitbox_size": (60, 120),
+    "block_frames": (688, 694),  # Кадры для анимации блока (для Jotaro это 688-694)
+    "block_offset_x": 40,  # Смещение спрайта блока по X
+    "block_offset_y": 0,  # Смещение спрайта блока по Y
+    "block_duration": 30,  # Длительность блока в кадрах
+    "block_cooldown": 40,  # Перезарядка блока
+
+    # ПАРАМЕТРЫ ШКАЛЫ СТЕНДА (индивидуальные для персонажа)
+    "stand_meter_max": 100,
+    "stand_summon_cost": 10,
+    "stand_block_drain": 20,  # Расход при блоке со стендом
+    "stand_block_drain_no_stand": 10,  # Расход при блоке без стенда
+    "stand_gain_on_hit": 15,  # Пополнение при получении урона
+    "stand_gain_on_block": 5,  # Пополнение при блоке
+    "stand_gain_on_attack": 2,  # Пополнение при атаке
+    "stand_passive_gain": 0.1,  # Пассивное пополнение
+
     "frame_ranges": {
+        "block": (688, 694),
         "idle": (0, 23),
         "move_right": (37, 52),
         "move_left": (53, 68),

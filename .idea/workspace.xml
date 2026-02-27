@@ -4,13 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="edc059fa-8a4a-44bb-87ee-22a73f0e2ec1" name="Changes" comment="фон в битве">
-      <change afterPath="$PROJECT_DIR$/dio_data.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/jotaro_data.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lobby_server.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/network.py" afterDir="false" />
+    <list default="true" id="edc059fa-8a4a-44bb-87ee-22a73f0e2ec1" name="Changes" comment="онлайн">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dio_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/dio_data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/harakteristici.py" beforeDir="false" afterPath="$PROJECT_DIR$/harakteristici.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/jotaro_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/jotaro_data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests.py" afterDir="false" />
     </list>
@@ -75,7 +73,7 @@
       <recent name="C:\Users\user\PycharmProjects\MyPyGame" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.tests">
+  <component name="RunManager" selected="Python.main">
     <configuration name="harakteristici" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="MyPyGame" />
       <option name="ENV_FILES" value="" />
@@ -188,9 +186,9 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.main" />
         <item itemvalue="Python.tests" />
         <item itemvalue="Python.lobby_server" />
-        <item itemvalue="Python.main" />
         <item itemvalue="Python.harakteristici" />
         <item itemvalue="Python.test" />
       </list>
@@ -331,7 +329,15 @@
       <option name="project" value="LOCAL" />
       <updated>1772128623339</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="онлайн">
+      <option name="closed" value="true" />
+      <created>1772139039707</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1772139039707</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -348,6 +354,7 @@
     <MESSAGE value="Добавлен рывок" />
     <MESSAGE value="красивое меню" />
     <MESSAGE value="фон в битве" />
-    <option name="LAST_COMMIT_MESSAGE" value="фон в битве" />
+    <MESSAGE value="онлайн" />
+    <option name="LAST_COMMIT_MESSAGE" value="онлайн" />
   </component>
 </project>

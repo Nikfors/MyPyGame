@@ -5,7 +5,25 @@ DIO_CHARACTER = {
     "file_prefix": "DIO",
     "health": 500,
     "stand_name": "The World",
+    "hitbox_size": (80, 200),
+    "block_frames": (608, 609),  # Кадры для анимации блока (для DIO это 608-609)
+    "block_offset_x": 40,  # Смещение спрайта блока по X
+    "block_offset_y": 0,  # Смещение спрайта блока по Y
+    "block_duration": 30,  # Длительность блока в кадрах
+    "block_cooldown": 40,  # Перезарядка блока
+
+    # ПАРАМЕТРЫ ШКАЛЫ СТЕНДА (индивидуальные для персонажа)
+    "stand_meter_max": 100,
+    "stand_summon_cost": 10,
+    "stand_block_drain": 20,  # Расход при блоке со стендом
+    "stand_block_drain_no_stand": 10,  # Расход при блоке без стенда
+    "stand_gain_on_hit": 15,  # Пополнение при получении урона
+    "stand_gain_on_block": 5,  # Пополнение при блоке
+    "stand_gain_on_attack": 2,  # Пополнение при атаке
+    "stand_passive_gain": 0.1,
+
     "frame_ranges": {
+        "block": (608, 609),
         "idle": (0, 37),
         "move_right": (54, 69),
         "move_left": (70, 85),
@@ -44,43 +62,49 @@ DIO_CHARACTER = {
         "attack1": {
             "damage": 10,
             "knockback": 5,
-            "hitbox": (50, 80),
-            "offset_x": 60,
+            "hitbox": (70, 40),
+            "offset_x": 150,
+            "offset_y": 45,           # По центру
             "active_frames": (372, 372),
         },
         "attack2": {
             "damage": 12,
             "knockback": 8,
-            "hitbox": (60, 80),
-            "offset_x": 65,
+            "hitbox": (45, 75),
+            "offset_x": 160,
+            "offset_y": 90,            # Чуть выше (удар в голову)
             "active_frames": (379, 380),
         },
         "attack3": {
             "damage": 25,
             "knockback": 20,
-            "hitbox": (70, 90),
-            "offset_x": 70,
+            "hitbox": (50, 80),
+            "offset_x": 45,
+            "offset_y": 30,           # Чуть ниже (удар в ноги)
             "active_frames": (390, 391),
         },
         "stand_attack1": {
             "damage": 15,
             "knockback": 10,
-            "hitbox": (70, 100),
-            "offset_x": 10,
+            "hitbox": (55, 85),
+            "offset_x": 150,
+            "offset_y": 40,
             "active_frames": (140, 142),
         },
         "stand_attack2": {
             "damage": 18,
             "knockback": 12,
-            "hitbox": (80, 100),
-            "offset_x": 85,
+            "hitbox": (60, 90),
+            "offset_x": 160,
+            "offset_y": 40,           # Стенд бьет сверху
             "active_frames": (169, 170),
         },
         "stand_attack3": {
             "damage": 30,
             "knockback": 25,
-            "hitbox": (90, 110),
-            "offset_x": 90,
+            "hitbox": (140, 60),
+            "offset_x": 160,
+            "offset_y": 100,          # Стенд бьет снизу
             "active_frames": (180, 181),
         },
     },

@@ -3,7 +3,7 @@ import arcade
 DIO_CHARACTER = {
     "display_name": "DIO",
     "file_prefix": "DIO",
-    "health": 500,
+    "health": 1000,
     "stand_name": "The World",
     "hitbox_size": (80, 200),
     "block_frames": (608, 609),  # Кадры для анимации блока (для DIO это 608-609)
@@ -77,9 +77,9 @@ DIO_CHARACTER = {
         },
         "attack3": {
             "damage": 25,
-            "knockback": 20,
+            "knockback": 50,
             "hitbox": (50, 80),
-            "offset_x": 45,
+            "offset_x": 170,
             "offset_y": 30,           # Чуть ниже (удар в ноги)
             "active_frames": (390, 391),
         },
@@ -114,8 +114,8 @@ DIO_CHARACTER = {
     "movement_speed": 2,
     "jump_speed": 15,
     "dash_speed": 15,
-    "dash_distance": 220,
-    "dash_cooldown": 40,
+    "dash_distance": 250,
+    "dash_cooldown": 35,
     "sprite_scale": 2,
     "color": arcade.color.YELLOW
 }
@@ -126,7 +126,7 @@ DIO_STAND = {
     "file_prefix": "TheWorld",
     "frame_ranges": {
         "idle": (0, 4),
-        "block": (40, 45),
+        "block": (47, 48),
         "move_forward": (23, 24),
         "move_backward": (17, 18),
         "jump": (38, 39),

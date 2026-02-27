@@ -25,39 +25,48 @@ class GameServer:
 
     def start(self):
         """Запуск сервера и ожидание подключения"""
-        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server_socket.bind((self.host, self.port))
-        self.server_socket.listen(1)
-        self.running = True
+        try:
+            self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.server_socket.bind((self.host, self.port))
+            self.server_socket.listen(1)
+            self.running = True
 
-        print(f"Сервер запущен на {self.host}:{self.port}, ожидание подключения...")
+            print(f"Сервер запущен на {self.host}:{self.port}, ожидание подключения...")
 
-        # Устанавливаем таймаут для возможности проверки running
-        self.server_socket.settimeout(1.0)
+            # Устанавливаем таймаут для возможности проверки running
+            self.server_socket.settimeout(1.0)
 
-        while self.running and not self.connected:
-            try:
-                self.client_socket, self.client_address = self.server_socket.accept()
-                self.connected = True
-                print(f"Клиент подключился: {self.client_address}")
-            except socket.timeout:
-                continue
-            except Exception as e:
-                if self.running:
-                    print(f"Ошибка при подключении: {e}")
-                break
+            while self.running and not self.connected:
+                try:
+                    self.client_socket, self.client_address = self.server_socket.accept()
+                    # Устанавливаем таймаут для сокета клиента
+                    self.client_socket.settimeout(5.0)
+                    self.connected = True
+                    print(f"Клиент подключился: {self.client_address}")
+                except socket.timeout:
+                    continue
+                except Exception as e:
+                    if self.running:
+                        print(f"Ошибка при подключении: {e}")
+                    break
 
-        return self.connected
+            return self.connected
+        except Exception as e:
+            print(f"Ошибка запуска сервера: {e}")
+            return False
 
     def stop(self):
         """Остановка сервера"""
         self.running = False
         self.connected = False
-        if self.client_socket:
-            self.client_socket.close()
-        if self.server_socket:
-            self.server_socket.close()
+        try:
+            if self.client_socket:
+                self.client_socket.close()
+            if self.server_socket:
+                self.server_socket.close()
+        except:
+            pass
         print("Сервер остановлен")
 
     def send_state(self, player_state):
@@ -72,7 +81,12 @@ class GameServer:
             })
             self.client_socket.sendall(len(data).to_bytes(4, 'big') + data)
             return True
-        except:
+        except socket.timeout:
+            print("Таймаут отправки")
+            self.connected = False
+            return False
+        except Exception as e:
+            print(f"Ошибка отправки: {e}")
             self.connected = False
             return False
 
@@ -93,15 +107,21 @@ class GameServer:
             # Получаем само сообщение
             data = b''
             while len(data) < msg_size:
-                chunk = self.client_socket.recv(min(msg_size - len(data), 4096))
-                if not chunk:
-                    self.connected = False
-                    return None
-                data += chunk
+                try:
+                    chunk = self.client_socket.recv(min(msg_size - len(data), 4096))
+                    if not chunk:
+                        self.connected = False
+                        return None
+                    data += chunk
+                except socket.timeout:
+                    continue
 
             msg = pickle.loads(data)
             return msg['data']
-        except:
+        except socket.timeout:
+            return None
+        except Exception as e:
+            print(f"Ошибка получения: {e}")
             self.connected = False
             return None
 
@@ -116,11 +136,21 @@ class GameClient:
         """Подключение к серверу"""
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # Устанавливаем таймаут на подключение
+            self.socket.settimeout(5.0)
             self.socket.connect((host, port))
+            # Устанавливаем таймаут на операции
+            self.socket.settimeout(1.0)
             self.connected = True
             self.server_address = (host, port)
             print(f"Подключено к серверу {host}:{port}")
             return True
+        except socket.timeout:
+            print(f"Таймаут подключения к {host}:{port}")
+            return False
+        except ConnectionRefusedError:
+            print(f"Соединение отклонено {host}:{port} - сервер не запущен")
+            return False
         except Exception as e:
             print(f"Ошибка подключения: {e}")
             return False
@@ -128,8 +158,11 @@ class GameClient:
     def disconnect(self):
         """Отключение от сервера"""
         self.connected = False
-        if self.socket:
-            self.socket.close()
+        try:
+            if self.socket:
+                self.socket.close()
+        except:
+            pass
         print("Отключено от сервера")
 
     def send_state(self, player_state):
@@ -144,7 +177,12 @@ class GameClient:
             })
             self.socket.sendall(len(data).to_bytes(4, 'big') + data)
             return True
-        except:
+        except socket.timeout:
+            print("Таймаут отправки")
+            self.connected = False
+            return False
+        except Exception as e:
+            print(f"Ошибка отправки: {e}")
             self.connected = False
             return False
 
@@ -163,14 +201,20 @@ class GameClient:
 
             data = b''
             while len(data) < msg_size:
-                chunk = self.socket.recv(min(msg_size - len(data), 4096))
-                if not chunk:
-                    self.connected = False
-                    return None
-                data += chunk
+                try:
+                    chunk = self.socket.recv(min(msg_size - len(data), 4096))
+                    if not chunk:
+                        self.connected = False
+                        return None
+                    data += chunk
+                except socket.timeout:
+                    continue
 
             msg = pickle.loads(data)
             return msg['data']
-        except:
+        except socket.timeout:
+            return None
+        except Exception as e:
+            print(f"Ошибка получения: {e}")
             self.connected = False
             return None

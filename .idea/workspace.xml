@@ -4,10 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="edc059fa-8a4a-44bb-87ee-22a73f0e2ec1" name="Changes" comment="добавлены атаки и хитбоксы">
+    <list default="true" id="edc059fa-8a4a-44bb-87ee-22a73f0e2ec1" name="Changes" comment="блокировка">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dio_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/dio_data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/jotaro_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/jotaro_data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lobby_server.py" beforeDir="false" afterPath="$PROJECT_DIR$/lobby_server.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/network.py" beforeDir="false" afterPath="$PROJECT_DIR$/network.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -52,6 +54,7 @@
     "Python.lobby_server.executor": "Run",
     "Python.main.executor": "Run",
     "Python.test.executor": "Run",
+    "Python.test2.executor": "Run",
     "Python.tests.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
@@ -71,7 +74,7 @@
       <recent name="C:\Users\user\PycharmProjects\MyPyGame" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.tests">
+  <component name="RunManager" selected="Python.test2">
     <configuration name="harakteristici" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="MyPyGame" />
       <option name="ENV_FILES" value="" />
@@ -138,7 +141,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="test" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="test2" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="MyPyGame" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -151,7 +154,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test2.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -184,11 +187,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.test2" />
         <item itemvalue="Python.tests" />
-        <item itemvalue="Python.main" />
         <item itemvalue="Python.lobby_server" />
+        <item itemvalue="Python.main" />
         <item itemvalue="Python.harakteristici" />
-        <item itemvalue="Python.test" />
       </list>
     </recent_temporary>
   </component>
@@ -343,7 +346,15 @@
       <option name="project" value="LOCAL" />
       <updated>1772166560061</updated>
     </task>
-    <option name="localTasksCounter" value="18" />
+    <task id="LOCAL-00018" summary="блокировка">
+      <option name="closed" value="true" />
+      <created>1772167528436</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1772167528436</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -362,6 +373,7 @@
     <MESSAGE value="фон в битве" />
     <MESSAGE value="онлайн" />
     <MESSAGE value="добавлены атаки и хитбоксы" />
-    <option name="LAST_COMMIT_MESSAGE" value="добавлены атаки и хитбоксы" />
+    <MESSAGE value="блокировка" />
+    <option name="LAST_COMMIT_MESSAGE" value="блокировка" />
   </component>
 </project>

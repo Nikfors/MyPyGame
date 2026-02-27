@@ -3,7 +3,7 @@ import arcade
 DIO_CHARACTER = {
     "display_name": "DIO",
     "file_prefix": "DIO",
-    "health": 500,
+    "health": 1000,
     "stand_name": "The World",
     "hitbox_size": (80, 200),
     "block_frames": (608, 609),  # Кадры для анимации блока (для DIO это 608-609)
@@ -38,6 +38,9 @@ DIO_CHARACTER = {
         "stand_attack1": (608, 609),
         "stand_attack2": (608, 609),
         "stand_attack3": (608, 609),
+        "intro": (623, 650),
+        "victory": (610, 622),
+        "defeat": (537, 567)
     },
     "jump_loop": (111, 112),
     "dash_forward_loop": (88, 91),
@@ -57,13 +60,16 @@ DIO_CHARACTER = {
         "stand_attack1": 3,
         "stand_attack2": 3,
         "stand_attack3": 4,
+        "intro": 6,
+        "victory": 5,
+        "defeat": 5,
     },
     "attacks": {
         "attack1": {
             "damage": 10,
             "knockback": 5,
             "hitbox": (70, 40),
-            "offset_x": 150,
+            "offset_x": 90,
             "offset_y": 45,           # По центру
             "active_frames": (372, 372),
         },
@@ -71,15 +77,15 @@ DIO_CHARACTER = {
             "damage": 12,
             "knockback": 8,
             "hitbox": (45, 75),
-            "offset_x": 160,
+            "offset_x": 100,
             "offset_y": 90,            # Чуть выше (удар в голову)
             "active_frames": (379, 380),
         },
         "attack3": {
             "damage": 25,
-            "knockback": 20,
+            "knockback": 50,
             "hitbox": (50, 80),
-            "offset_x": 45,
+            "offset_x": 110,
             "offset_y": 30,           # Чуть ниже (удар в ноги)
             "active_frames": (390, 391),
         },
@@ -96,15 +102,15 @@ DIO_CHARACTER = {
             "knockback": 12,
             "hitbox": (60, 90),
             "offset_x": 160,
-            "offset_y": 40,           # Стенд бьет сверху
+            "offset_y": 40,
             "active_frames": (169, 170),
         },
         "stand_attack3": {
             "damage": 30,
             "knockback": 25,
             "hitbox": (140, 60),
-            "offset_x": 160,
-            "offset_y": 100,          # Стенд бьет снизу
+            "offset_x": 170,
+            "offset_y": 100,
             "active_frames": (180, 181),
         },
     },
@@ -114,8 +120,8 @@ DIO_CHARACTER = {
     "movement_speed": 2,
     "jump_speed": 15,
     "dash_speed": 15,
-    "dash_distance": 220,
-    "dash_cooldown": 40,
+    "dash_distance": 250,
+    "dash_cooldown": 35,
     "sprite_scale": 2,
     "color": arcade.color.YELLOW
 }
@@ -126,7 +132,7 @@ DIO_STAND = {
     "file_prefix": "TheWorld",
     "frame_ranges": {
         "idle": (0, 4),
-        "block": (40, 45),
+        "block": (47, 48),
         "move_forward": (23, 24),
         "move_backward": (17, 18),
         "jump": (38, 39),

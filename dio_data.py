@@ -126,6 +126,7 @@ DIO_STAND = {
     "file_prefix": "TheWorld",
     "frame_ranges": {
         "idle": (0, 4),
+        "block": (40, 45),
         "move_forward": (23, 24),
         "move_backward": (17, 18),
         "jump": (38, 39),

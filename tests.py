@@ -27,10 +27,24 @@ MENU_SELECTED_COLOR = arcade.color.YELLOW
 
 # Константы для атак
 ATTACK_COOLDOWN = 20
-COMBO_WINDOW = 30
 HIT_COOLDOWN = 30
 KNOCKBACK_DURATION = 10
 
+# Константы для комбо
+COMBO_WINDOW = 30
+
+# Константы для защиты
+BLOCK_DURATION = 30  # Длительность защиты в кадрах
+
+# Константы для шкалы стенда
+STAND_METER_MAX = 100
+STAND_METER_SUMMON_COST = 10
+STAND_METER_BLOCK_DRAIN = 20
+STAND_METER_BLOCK_DRAIN_NO_STAND = 10
+STAND_METER_GAIN_ON_HIT = 15
+STAND_METER_GAIN_ON_BLOCK = 5
+STAND_METER_GAIN_ON_ATTACK = 2
+STAND_METER_PASSIVE_GAIN = 0.1
 
 LOBBY_SERVER_URL = "http://127.0.0.1:5000"
 
@@ -184,17 +198,15 @@ class Stand(arcade.Sprite):
         # Получаем параметры хитбокса атаки
         hitbox_width, hitbox_height = attack_data.get("hitbox", (80, 100))
         offset_x = attack_data.get("offset_x", 80)
-        offset_y = attack_data.get("offset_y", 0)  # По умолчанию 0 (по центру)
+        offset_y = attack_data.get("offset_y", 0)
 
-        # Позиция хитбокса атаки (впереди владельца с учетом offset)
+        # Позиция хитбокса атаки
         if self.owner.facing_right:
             hitbox_left = self.owner.center_x + offset_x - hitbox_width // 2
         else:
             hitbox_left = self.owner.center_x - offset_x - hitbox_width // 2
 
         hitbox_right = hitbox_left + hitbox_width
-
-        # Вертикальное смещение
         hitbox_center_y = self.owner.center_y + offset_y
         hitbox_bottom = hitbox_center_y - hitbox_height // 2
         hitbox_top = hitbox_center_y + hitbox_height // 2
@@ -212,17 +224,7 @@ class Stand(arcade.Sprite):
             opponent_bottom = opponent.center_y - opponent.height // 2
             opponent_top = opponent.center_y + opponent.height // 2
 
-        # Отладка
-        print(f"=== АТАКА СТЕНДА ===")
-        print(f"Стенд атакует: комбо {self.current_combo}, кадр {self.current_frame}")
-        print(f"Хитбокс атаки: L={hitbox_left:.0f}, R={hitbox_right:.0f}, B={hitbox_bottom:.0f}, T={hitbox_top:.0f}")
-        print(f"Смещение по Y: {offset_y}")
-        print(
-            f"Хитбокс противника: L={opponent_left:.0f}, R={opponent_right:.0f}, B={opponent_bottom:.0f}, T={opponent_top:.0f}")
-        print(f"Дистанция по X: {opponent_left - hitbox_right:.0f}")
-        print(f"Дистанция по Y: {opponent_bottom - hitbox_top:.0f}")
-
-        # Проверка пересечения по X и Y
+        # Проверка пересечения
         if (hitbox_right > opponent_left and hitbox_left < opponent_right and
                 hitbox_top > opponent_bottom and hitbox_bottom < opponent_top):
             self.has_hit_in_this_attack = True
@@ -295,8 +297,12 @@ class Stand(arcade.Sprite):
         if self.is_attacking and self.owner.opponent:
             self.check_attack_hit(self.owner.opponent)
 
+        # Если владелец в защите, стенд тоже в защите
+        if self.owner.is_blocking and self.owner.is_crouching:
+            if self.current_action != "block" and "block" in self.frame_ranges:
+                self.set_action("block")
         # Если стенд не в процессе призыва и не атакует, синхронизируем базовые движения
-        if not self.is_summoning and not self.is_attacking:
+        elif not self.is_summoning and not self.is_attacking:
             owner_action = self.owner.current_action
 
             if owner_action in ["idle", "move_right", "move_left", "jump", "crouch", "dash_forward", "dash_backward"]:
@@ -342,7 +348,7 @@ class Character(arcade.Sprite):
         if 0 in self.all_textures[0] and self.all_textures[0][0]:
             first_texture = self.all_textures[0][0]
 
-        # Вызываем родительский конструктор - texture как позиционный аргумент
+        # Вызываем родительский конструктор
         super().__init__(first_texture, scale=self.sprite_scale)
 
         # Переопределяем хитбокс
@@ -397,6 +403,14 @@ class Character(arcade.Sprite):
         self.double_jump_used = False
         self.stand_sprite_list = arcade.SpriteList()
 
+        # Система защиты
+        self.is_blocking = False
+        self.block_timer = 0
+
+        # Шкала стенда
+        self.stand_meter = 0
+        self.stand_meter_max = STAND_METER_MAX
+
         # Позиция и направление
         self.center_x = start_pos_x
         self.center_y = start_pos_y
@@ -416,7 +430,7 @@ class Character(arcade.Sprite):
         self.change_x = 0
         self.change_y = 0
 
-        # Устанавливаем начальную текстуру через родительский метод
+        # Устанавливаем начальную текстуру
         if first_texture:
             self.texture = first_texture
 
@@ -443,7 +457,6 @@ class Character(arcade.Sprite):
         """Игнорируем установку стандартного хитбокса"""
         pass
 
-
     def _load_textures_only(self):
         """Загружает текстуры, но не устанавливает их как текущую текстуру"""
         character_path = Path("Спрайты") / self.character_name
@@ -469,7 +482,7 @@ class Character(arcade.Sprite):
                 self.all_textures[1][i] = None
 
     def load_all_textures(self):
-        """Старый метод - больше не используется, оставлен для совместимости"""
+        """Старый метод - для совместимости"""
         self._load_textures_only()
 
     def get_character_bounds(self):
@@ -489,7 +502,7 @@ class Character(arcade.Sprite):
         self.opponent = opponent
 
     def update_facing_direction(self):
-        if self.opponent and not self.is_attacking and not self.is_dashing:
+        if self.opponent and not self.is_attacking and not self.is_dashing and not self.is_blocking:
             if self.opponent.center_x > self.center_x:
                 self.facing_right = True
                 self.current_direction = 0
@@ -502,11 +515,9 @@ class Character(arcade.Sprite):
         if frame_number in self.all_textures[self.current_direction] and self.all_textures[self.current_direction][
             frame_number]:
             texture = self.all_textures[self.current_direction][frame_number]
-            # Безопасно устанавливаем текстуру
             try:
                 self.texture = texture
             except AttributeError:
-                # Если self._texture еще не существует, создаем его
                 self._texture = texture
             return texture
 
@@ -535,7 +546,7 @@ class Character(arcade.Sprite):
         return None
 
     def jump(self):
-        if self.is_summoning or self.is_attacking:
+        if self.is_summoning or self.is_attacking or self.is_blocking:
             return False
 
         if not self.is_jumping and not self.is_crouching and not self.is_dashing and self.center_y <= GROUND_LEVEL:
@@ -555,6 +566,7 @@ class Character(arcade.Sprite):
         return False
 
     def crouch(self, start_crouch=True):
+        """Приседание и активация защиты"""
         if "crouch" not in self.frame_ranges or self.is_dashing or self.is_summoning or self.is_attacking:
             return
 
@@ -563,6 +575,11 @@ class Character(arcade.Sprite):
         if start_crouch:
             if not self.is_jumping and not self.is_crouching and not self.is_dashing:
                 self.is_crouching = True
+
+                # Активируем защиту
+                self.is_blocking = True
+                self.block_timer = BLOCK_DURATION
+
                 self.set_action("crouch")
 
                 if self.crouch_freeze_frame and start_frame <= self.crouch_freeze_frame <= end_frame:
@@ -575,8 +592,11 @@ class Character(arcade.Sprite):
                 self.is_crouching = False
                 self.crouch_freeze_frame_active = None
 
+                # Отключаем защиту
+                self.is_blocking = False
+
     def dash(self, move_direction=None):
-        if self.is_dashing or self.is_jumping or self.is_crouching or self.dash_cooldown > 0 or self.is_summoning or self.is_attacking:
+        if self.is_dashing or self.is_jumping or self.is_crouching or self.dash_cooldown > 0 or self.is_summoning or self.is_attacking or self.is_blocking:
             return False
 
         if move_direction is not None:
@@ -610,30 +630,40 @@ class Character(arcade.Sprite):
 
     def toggle_stand(self):
         """Переключение состояния стенда"""
-        if self.is_jumping or self.is_dashing:
+        if self.is_jumping or self.is_dashing or self.is_blocking:
             return
 
         if self.is_attacking and "stand_attack" not in self.current_action:
             return
 
         if self.stand_active:
+            # Убираем стенд
             self.stand_active = False
             self.stand = None
             self.stand_sprite_list.clear()
             print(f"Игрок {self.player_number} убрал стенд")
+            return True
         else:
-            self.stand_active = True
-            self.is_summoning = True
-            self.set_action("stand_summon")
-            self.stand = Stand(self)
-            self.stand_sprite_list.append(self.stand)
-            print(f"Игрок {self.player_number} призывает стенд")
+            # Проверяем, достаточно ли шкалы для призыва
+            if self.stand_meter >= STAND_METER_SUMMON_COST:
+                # Тратим шкалу на призыв
+                self.stand_meter -= STAND_METER_SUMMON_COST
+                # Призываем стенд
+                self.stand_active = True
+                self.is_summoning = True
+                self.set_action("stand_summon")
+                self.stand = Stand(self)
+                self.stand_sprite_list.append(self.stand)
+                print(
+                    f"Игрок {self.player_number} призывает стенд, потрачено {STAND_METER_SUMMON_COST} шкалы, осталось {self.stand_meter:.1f}")
+                return True
+            else:
+                print(f"Недостаточно шкалы стенда: {self.stand_meter:.1f}/100, нужно {STAND_METER_SUMMON_COST}")
+                return False
 
     def attack(self):
         """Основной метод атаки"""
-        if not self.can_attack or self.is_summoning or self.is_dashing or self.is_jumping:
-            print(
-                f"Не могу атаковать: can_attack={self.can_attack}, is_summoning={self.is_summoning}, is_dashing={self.is_dashing}, is_jumping={self.is_jumping}")
+        if not self.can_attack or self.is_summoning or self.is_dashing or self.is_jumping or self.is_blocking:
             return False
 
         # Определяем тип атаки
@@ -644,48 +674,38 @@ class Character(arcade.Sprite):
 
         # Логика комбо
         if self.combo_timer > 0 and self.combo_counter > 0:
-            # Если мы в окне комбо и предыдущий удар попал
             if self.attack_hit and self.combo_counter < 3:
                 self.combo_counter += 1
                 print(f"Комбо продолжается! Удар {self.combo_counter}")
             else:
-                # Если не попал или время вышло, начинаем новое комбо
                 self.combo_counter = 1
                 print(f"Новое комбо с удара 1")
         else:
-            # Начинаем новое комбо
             self.combo_counter = 1
             print(f"Новое комбо с удара 1")
 
         attack_name = f"{attack_prefix}{self.combo_counter}"
-        print(f"Попытка атаки: {attack_name}")
 
-        # Проверяем существование атаки
         if attack_name not in self.frame_ranges:
-            print(f"Атака {attack_name} не найдена в frame_ranges")
+            print(f"Атака {attack_name} не найдена")
             return False
 
-        # Сбрасываем флаги
-        self.attack_hit = False  # Сбрасываем флаг попадания для новой атаки
+        # Небольшое пополнение шкалы за попытку атаки
+        self.stand_meter = min(self.stand_meter_max, self.stand_meter + STAND_METER_GAIN_ON_ATTACK)
+
+        self.attack_hit = False
         self.is_attacking = True
         self.can_attack = False
         self.attack_cooldown = ATTACK_COOLDOWN
         self.has_hit_in_this_attack = False
-
-        # Останавливаем движение
         self.change_x = 0
 
-        # Запускаем анимацию
         self.set_action(attack_name)
+        self.combo_timer = COMBO_WINDOW
 
-        # Устанавливаем таймер комбо
-        self.combo_timer = COMBO_WINDOW  # Время для следующего удара
-
-        # Если стенд активен, говорим ему начать атаку
         if self.stand_active and self.stand:
             self.stand.start_attack(self.combo_counter)
 
-        print(f"Атака {attack_name} запущена, combo_timer={self.combo_timer}")
         return True
 
     def check_attack_hit(self):
@@ -696,21 +716,15 @@ class Character(arcade.Sprite):
         if "stand_" in self.current_action:
             return False
 
-        print(f"Проверка обычной атаки: {self.current_action}, кадр {self.current_frame}")
-
         attack_data = get_attack_data(self.character_name, self.current_action)
         if not attack_data:
-            print(f"Нет данных для атаки {self.current_action}")
             return False
 
         active_frames = attack_data.get("active_frames", (0, 0))
-        print(f"Активные кадры: {active_frames}, текущий: {self.current_frame}")
-
         if self.current_frame < active_frames[0] or self.current_frame > active_frames[1]:
             return False
 
         if self.opponent.hit_cooldown > 0:
-            print("Противник неуязвим")
             return False
 
         # Получаем параметры хитбокса атаки
@@ -742,18 +756,9 @@ class Character(arcade.Sprite):
             opponent_bottom = self.opponent.center_y - self.opponent.height // 2
             opponent_top = self.opponent.center_y + self.opponent.height // 2
 
-        print(f"Хитбокс атаки: L={hitbox_left:.0f}, R={hitbox_right:.0f}, B={hitbox_bottom:.0f}, T={hitbox_top:.0f}")
-        print(
-            f"Хитбокс противника: L={opponent_left:.0f}, R={opponent_right:.0f}, B={opponent_bottom:.0f}, T={opponent_top:.0f}")
-        print(f"=== ОТЛАДКА АТАКИ ===")
-        print(f"Мой центр: ({self.center_x:.0f}, {self.center_y:.0f})")
-        print(f"Смещение по Y: {offset_y}")
-        print(f"combo_counter={self.combo_counter}, attack_hit={self.attack_hit}, combo_timer={self.combo_timer}")
-
         # Проверка пересечения
         if (hitbox_right > opponent_left and hitbox_left < opponent_right and
                 hitbox_top > opponent_bottom and hitbox_bottom < opponent_top):
-            # Важно: устанавливаем attack_hit в True, чтобы комбо могло продолжиться
             self.attack_hit = True
             self.has_hit_in_this_attack = True
 
@@ -762,7 +767,10 @@ class Character(arcade.Sprite):
             knockback_dir = 1 if self.facing_right else -1
 
             self.opponent.take_damage(damage, knockback * knockback_dir)
-            print(f"Обычная атака ПОПАЛА! Урон: {damage}, attack_hit установлен в True")
+
+            # Пополнение шкалы за успешную атаку
+            self.stand_meter = min(self.stand_meter_max, self.stand_meter + STAND_METER_GAIN_ON_ATTACK)
+
             return True
 
         return False
@@ -771,6 +779,66 @@ class Character(arcade.Sprite):
         if self.hit_cooldown > 0:
             return
 
+        # Пополняем шкалу при получении урона (только если не в блоке)
+        if not self.is_blocking:
+            self.stand_meter = min(self.stand_meter_max, self.stand_meter + STAND_METER_GAIN_ON_HIT)
+
+        # Проверяем, активна ли защита
+        if self.is_blocking:
+            if self.stand_active:
+                # Полная защита со стендом
+                if self.stand_meter >= STAND_METER_BLOCK_DRAIN:
+                    self.stand_meter -= STAND_METER_BLOCK_DRAIN
+
+                    # Дополнительное пополнение за успешный блок
+                    self.stand_meter = min(self.stand_meter_max, self.stand_meter + STAND_METER_GAIN_ON_BLOCK)
+
+                    # Если шкала упала до 0, стенд отключается
+                    if self.stand_meter <= 0:
+                        self.stand_meter = 0
+                        self.stand_active = False
+                        self.stand = None
+                        self.stand_sprite_list.clear()
+
+                    # Небольшой откат без урона
+                    knockback_dir = 1 if self.facing_right else -1
+                    self.center_x += knockback_force * 0.3 * knockback_dir
+
+                    return
+                else:
+                    # Недостаточно шкалы для блока
+                    self.is_blocking = False
+            else:
+                # Частичная защита без стенда
+                if self.stand_meter >= STAND_METER_BLOCK_DRAIN_NO_STAND:
+                    self.stand_meter -= STAND_METER_BLOCK_DRAIN_NO_STAND
+
+                    # Уменьшенный урон (50%)
+                    reduced_damage = int(damage * 0.5)
+                    reduced_knockback = int(knockback_force * 0.5)
+
+                    self.current_health -= reduced_damage
+                    if self.current_health < 0:
+                        self.current_health = 0
+
+                    # Дополнительное пополнение за успешный блок
+                    self.stand_meter = min(self.stand_meter_max, self.stand_meter + STAND_METER_GAIN_ON_BLOCK)
+
+                    # Применяем уменьшенный откат
+                    self.hit_cooldown = HIT_COOLDOWN // 2
+                    self.is_hit = True
+                    self.knockback_velocity = reduced_knockback * (1 if self.facing_right else -1)
+                    self.knockback_timer = KNOCKBACK_DURATION // 2
+
+                    self.is_attacking = False
+                    self.is_dashing = False
+
+                    return
+                else:
+                    # Недостаточно шкалы для блока
+                    self.is_blocking = False
+
+        # Обычное получение урона (без блока)
         self.current_health -= damage
         if self.current_health < 0:
             self.current_health = 0
@@ -782,7 +850,6 @@ class Character(arcade.Sprite):
 
         self.is_attacking = False
         self.is_dashing = False
-        self.combo_timer = 0
         self.change_x = 0
 
     def draw_stand(self):
@@ -790,7 +857,7 @@ class Character(arcade.Sprite):
             self.stand_sprite_list.draw()
 
     def draw_health_bar(self):
-        """Отрисовка полоски здоровья в верхней части экрана"""
+        """Отрисовка полоски здоровья"""
         if self.player_number == 1:
             x = SCREEN_WIDTH // 4
         else:
@@ -818,9 +885,49 @@ class Character(arcade.Sprite):
                          x, y + height // 2 + 5,
                          arcade.color.WHITE, 16, anchor_x="center", bold=True)
 
-        if self.stand_active:
-            arcade.draw_text("STAND", x, y - height - 25,
-                             arcade.color.YELLOW, 12, anchor_x="center")
+    def draw_stand_meter(self):
+        """Отрисовка шкалы стенда"""
+        if self.player_number == 1:
+            x = SCREEN_WIDTH // 4
+        else:
+            x = 3 * SCREEN_WIDTH // 4
+
+        y = SCREEN_HEIGHT - 100
+        width = 300
+        height = 15
+
+        # Фон
+        left = x - width // 2
+        bottom = y - height // 2
+        arcade.draw_lbwh_rectangle_filled(left, bottom, width, height, arcade.color.DARK_GRAY)
+
+        # Заполнение
+        if self.stand_meter > 0:
+            meter_width = (self.stand_meter / self.stand_meter_max) * (width - 4)
+            left = x - width // 2 + 2
+            bottom = y - height // 2 + 2
+
+            if self.stand_active:
+                color = arcade.color.GOLD
+            else:
+                color = arcade.color.LIGHT_BLUE
+
+            arcade.draw_lbwh_rectangle_filled(left, bottom, meter_width, height - 4, color)
+
+            # Отметка стоимости призыва (10%)
+            if not self.stand_active:
+                summon_cost_x = x - width // 2 + (STAND_METER_SUMMON_COST / STAND_METER_MAX) * width
+                arcade.draw_line(summon_cost_x, y - height, summon_cost_x, y + height,
+                                 arcade.color.WHITE, 2)
+
+        # Текст
+        stand_text = "STAND" if self.stand_active else "STAND METER"
+        arcade.draw_text(stand_text, x, y - height - 10,
+                         arcade.color.WHITE, 12, anchor_x="center")
+
+        percent = int(self.stand_meter)
+        arcade.draw_text(f"{percent}%", x, y,
+                         arcade.color.WHITE, 10, anchor_x="center", anchor_y="center")
 
     def can_move(self):
         """Проверка, может ли персонаж двигаться"""
@@ -831,6 +938,8 @@ class Character(arcade.Sprite):
         if self.is_summoning:
             return False
         if self.is_dashing:
+            return False
+        if self.is_blocking:
             return False
         return True
 
@@ -905,6 +1014,9 @@ class Character(arcade.Sprite):
 
             elif self.current_action == "crouch":
                 if self.is_crouching:
+                    # Защита активна - обновляем таймер
+                    self.block_timer = BLOCK_DURATION
+
                     if self.crouch_freeze_frame_active is not None:
                         if self.current_frame < self.crouch_freeze_frame_active:
                             self.current_frame += 1
@@ -973,12 +1085,21 @@ class Character(arcade.Sprite):
         else:
             self.can_attack = True
 
-            # Обновление таймера комбо
+        # Обновление таймера блока
+        if self.is_blocking:
+            self.block_timer -= 1
+            if self.block_timer <= 0:
+                self.is_blocking = False
+
+        # Обновление шкалы стенда
+        if not self.stand_active:
+            # Пассивное пополнение без стенда
+            self.stand_meter = min(self.stand_meter_max, self.stand_meter + STAND_METER_PASSIVE_GAIN)
+
+        # Обновление таймера комбо
         if self.combo_timer > 0:
             self.combo_timer -= 1
-            print(f"combo_timer={self.combo_timer}, combo_counter={self.combo_counter}, attack_hit={self.attack_hit}")
             if self.combo_timer <= 0:
-                print("Время комбо истекло, сброс комбо")
                 self.combo_counter = 0
                 self.attack_hit = False
 
@@ -987,14 +1108,15 @@ class Character(arcade.Sprite):
             self.center_x += self.knockback_velocity
             self.knockback_velocity *= 0.8
 
-            # Проверка попадания атаки
+        # Проверка попадания атаки
         if self.is_attacking and not self.stand_active and "attack" in self.current_action and "stand" not in self.current_action:
             self.check_attack_hit()
 
-            # Обновляем направление взгляда (только если не в атаке)
-        if not self.is_attacking:
+        # Обновляем направление взгляда
+        if not self.is_attacking and not self.is_blocking:
             self.update_facing_direction()
 
+        # Движение
         if self.can_move():
             self.center_x += self.change_x
         else:
@@ -1016,6 +1138,7 @@ class Character(arcade.Sprite):
 
         self.center_y += self.change_y
 
+        # Границы
         if self.center_y <= GROUND_LEVEL:
             self.center_y = GROUND_LEVEL
             self.change_y = 0
@@ -1124,13 +1247,11 @@ class ModeMenuView(arcade.View):
         self.modes = ["ТЕСТОВЫЙ РЕЖИМ", "ОНЛАЙН"]
 
     def on_update(self, delta_time):
-        # Движение фона
         for s in self.bg_sprite_list:
             s.center_y -= 3.0
             if s.top < 0:
                 s.center_y += 8 * self.tile_h
 
-        # Анимация D'Arby
         if self.anim_state in ["intro", "outro"]:
             self.timer += delta_time
             if self.timer >= 0.1:
@@ -1141,19 +1262,14 @@ class ModeMenuView(arcade.View):
                     self.anim_state = "idle"
                 elif self.anim_state == "outro" and self.current_frame >= 13:
                     self.current_frame = 13
-                    print("Переход по выбору режима")
-                    # Проверяем, какой режим был выбран
                     if self.selected_index == 0:
-                        print("Переход к выбору персонажа для тестового режима")
                         self.window.show_view(TestCharacterSelectView())
-                    else:  # selected_index == 1
-                        print("Переход в онлайн меню")
+                    else:
                         self.window.show_view(OnlineMenuView())
 
                 if self.current_frame < len(self.darby_textures):
                     self.darby_sprite.texture = self.darby_textures[self.current_frame]
 
-        # Анимация боковых рамок
         self.ram_timer += delta_time
         if self.ram_timer >= 0.05:
             self.ram_timer = 0.0
@@ -1176,7 +1292,6 @@ class ModeMenuView(arcade.View):
         self.side_rams_list.draw()
         self.header_text.draw()
 
-        # Текст на иконках
         l_color = MENU_SELECTED_COLOR if self.selected_index == 0 else arcade.color.WHITE
         r_color = MENU_SELECTED_COLOR if self.selected_index == 1 else arcade.color.WHITE
 
@@ -1191,14 +1306,11 @@ class ModeMenuView(arcade.View):
 
         if key in [arcade.key.LEFT, arcade.key.A]:
             self.selected_index = 0
-            print("Выбран тестовый режим")
         elif key in [arcade.key.RIGHT, arcade.key.D]:
             self.selected_index = 1
-            print("Выбран онлайн режим")
         elif key == arcade.key.ENTER:
-            print(f"Запуск режима: {self.modes[self.selected_index]}")
             self.anim_state = "outro"
-            self.current_frame = 4  # Начинаем с 4 кадра, где заканчивается intr
+            self.current_frame = 4
 
 
 class OnlineMenuView(arcade.View):
@@ -1209,12 +1321,9 @@ class OnlineMenuView(arcade.View):
         self.status_message = ""
         self.status_color = arcade.color.WHITE
 
-        # Для создания комнаты
         self.server = None
         self.server_thread = None
         self.room_id = None
-
-        # Для подключения
         self.client = None
         self.available_rooms = []
         self.show_room_list = False
@@ -1243,16 +1352,14 @@ class OnlineMenuView(arcade.View):
             if s.top < 0:
                 s.center_y += self.rows * self.tile_h
 
-        # Автоматическое обновление списка комнат
         if self.show_room_list:
             self.refresh_timer += delta_time
-            if self.refresh_timer >= 2.0:  # Обновляем каждые 2 секунды
+            if self.refresh_timer >= 2.0:
                 self.refresh_timer = 0
                 self.refresh_room_list()
 
     def on_draw(self):
         self.clear()
-        # Отрисовка фона
         self.bg_sprite_list.draw()
         arcade.draw_rect_filled(
             arcade.LRBT(0, SCREEN_WIDTH, 0, SCREEN_HEIGHT),
@@ -1336,9 +1443,7 @@ class OnlineMenuView(arcade.View):
             self.window.show_view(ModeMenuView())
 
     def create_room(self):
-        """Создание комнаты"""
         try:
-            # 1. Регистрируем комнату на Flask
             response = requests.post(f"{LOBBY_SERVER_URL}/create_room",
                                      json={"player_name": "Player 1"})
 
@@ -1348,12 +1453,10 @@ class OnlineMenuView(arcade.View):
                 self.status_message = f"Комната {self.room_id} создана! Ожидание игрока..."
                 self.status_color = arcade.color.GREEN
 
-                # 2. Запускаем сервер в отдельном потоке
                 self.server = GameServer()
                 self.server_thread = threading.Thread(target=self._run_server, daemon=True)
                 self.server_thread.start()
 
-                # 3. Переходим в ожидание
                 self.window.show_view(OnlineWaitingView(self.room_id, is_host=True))
             else:
                 self.status_message = "Ошибка создания комнаты"
@@ -1363,16 +1466,13 @@ class OnlineMenuView(arcade.View):
             self.status_color = arcade.color.RED
 
     def _run_server(self):
-        """Запуск сервера в отдельном потоке"""
         if self.server and self.server.start():
-            # Когда игрок подключился, запускаем игру
             self.window.show_view(OnlineGameView(self.server, is_host=True))
         else:
             self.status_message = "Ошибка запуска сервера"
             self.status_color = arcade.color.RED
 
     def refresh_room_list(self):
-        """Обновление списка комнат"""
         try:
             response = requests.get(f"{LOBBY_SERVER_URL}/get_rooms")
             if response.status_code == 200:
@@ -1388,14 +1488,12 @@ class OnlineMenuView(arcade.View):
             self.available_rooms = []
 
     def join_selected_room(self):
-        """Подключение к выбранной комнате"""
         if not self.available_rooms:
             return
 
         room = self.available_rooms[self.selected_room]
 
         try:
-            # 1. Сообщаем серверу о подключении
             response = requests.post(f"{LOBBY_SERVER_URL}/join_room/{room['room_id']}",
                                      json={"player_name": "Player 2"})
 
@@ -1406,7 +1504,6 @@ class OnlineMenuView(arcade.View):
                 self.status_message = f"Подключение к {host_ip}..."
                 self.status_color = arcade.color.YELLOW
 
-                # 2. Подключаемся к серверу
                 self.client = GameClient()
                 if self.client.connect(host_ip):
                     self.window.show_view(OnlineGameView(self.client, is_host=False))
@@ -1451,7 +1548,6 @@ class OnlineWaitingView(arcade.View):
             if s.top < 0:
                 s.center_y += self.rows * self.tile_h
 
-        # Анимация точек
         self.animation_timer += delta_time
         if self.animation_timer >= 0.5:
             self.animation_timer = 0
@@ -1481,7 +1577,6 @@ class OnlineWaitingView(arcade.View):
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.ESCAPE and self.is_host:
-            # Отмена ожидания
             self.window.show_view(OnlineMenuView())
 
 
@@ -1491,13 +1586,11 @@ class OnlineGameView(arcade.View):
         self.network = network_connection
         self.is_host = is_host
 
-        # Выбор персонажей (для простоты используем DIO и Jotaro)
         self.p1_character = "DIO" if is_host else "JotaroKujo"
         self.p2_character = "JotaroKujo" if is_host else "DIO"
 
         self.setup_game()
 
-        # Для сетевой синхронизации
         self.last_send_time = 0
         self.opponent_state = None
 
@@ -1509,7 +1602,6 @@ class OnlineGameView(arcade.View):
         if map_path.exists():
             self.background = arcade.load_texture(str(map_path))
 
-        # Создаем игроков
         self.player1 = Character(self.p1_character, SCREEN_WIDTH // 4, GROUND_LEVEL, player_number=1)
         self.player2 = Character(self.p2_character, 3 * SCREEN_WIDTH // 4, GROUND_LEVEL, player_number=2)
 
@@ -1525,11 +1617,9 @@ class OnlineGameView(arcade.View):
         self.physics1 = arcade.PhysicsEngineSimple(self.player1, None)
         self.physics2 = arcade.PhysicsEngineSimple(self.player2, None)
 
-        # Флаги управления
         self.setup_controls()
 
     def setup_controls(self):
-        # Для хоста (игрок 1)
         if self.is_host:
             self.left = False
             self.right = False
@@ -1539,7 +1629,6 @@ class OnlineGameView(arcade.View):
             self.s_was_pressed = False
             self.shift_was_pressed = False
             self.attack_pressed = False
-        # Для гостя (игрок 2)
         else:
             self.left = False
             self.right = False
@@ -1554,24 +1643,26 @@ class OnlineGameView(arcade.View):
         if not self.player1 or not self.player2:
             return
 
-        # Обновление своего игрока
+        if self.player1.current_health <= 0:
+            self.show_game_over("ИГРОК 2 ПОБЕДИЛ!")
+            return
+        if self.player2.current_health <= 0:
+            self.show_game_over("ИГРОК 1 ПОБЕДИЛ!")
+            return
+
         self.update_my_player()
 
-        # Отправка своего состояния
         current_time = time.time()
-        if current_time - self.last_send_time > 0.05:  # 20 раз в секунду
+        if current_time - self.last_send_time > 0.05:
             self.send_my_state()
             self.last_send_time = current_time
 
-        # Получение состояния противника
         self.receive_opponent_state()
 
-        # Обновление физики
         if self.physics1 and self.physics2:
             self.physics1.update()
             self.physics2.update()
 
-        # Обновление анимаций
         if self.player1:
             self.player1.update()
             if self.player1.stand_active and self.player1.stand:
@@ -1582,7 +1673,6 @@ class OnlineGameView(arcade.View):
             if self.player2.stand_active and self.player2.stand:
                 self.player2.stand.update()
 
-        # Проверка победы
         self.check_winner()
 
     def update_my_player(self):
@@ -1592,7 +1682,6 @@ class OnlineGameView(arcade.View):
             self.update_player2()
 
     def update_player1(self):
-        # Логика управления для игрока 1
         if not self.player1.is_summoning and not self.player1.is_hit:
             if not self.player1.is_dashing and not self.player1.is_attacking:
                 self.player1.change_x = 0
@@ -1618,13 +1707,11 @@ class OnlineGameView(arcade.View):
                         self.player1.current_action not in ["crouch"]):
                     self.player1.set_action("idle")
 
-            # Прыжок
             if self.up and not self.w_was_pressed:
                 if not self.player1.is_crouching and not self.player1.is_dashing and not self.player1.is_attacking:
                     self.player1.jump()
                 self.w_was_pressed = True
 
-            # Приседание
             if self.down and not self.s_was_pressed:
                 self.player1.crouch(True)
                 self.s_was_pressed = True
@@ -1632,7 +1719,6 @@ class OnlineGameView(arcade.View):
                 self.player1.crouch(False)
                 self.s_was_pressed = False
 
-            # Рывок
             if self.shift_was_pressed and not self.player1.is_dashing and self.player1.dash_cooldown == 0:
                 if self.left:
                     self.player1.dash(-1)
@@ -1641,14 +1727,12 @@ class OnlineGameView(arcade.View):
                 else:
                     self.player1.dash()
 
-            # Атака
             if self.attack_pressed and not self.player1.is_attacking:
                 self.player1.attack()
         else:
             self.player1.change_x = 0
 
     def update_player2(self):
-        # Логика управления для игрока 2
         if not self.player2.is_summoning and not self.player2.is_hit:
             if not self.player2.is_dashing and not self.player2.is_attacking:
                 self.player2.change_x = 0
@@ -1674,13 +1758,11 @@ class OnlineGameView(arcade.View):
                         self.player2.current_action not in ["crouch"]):
                     self.player2.set_action("idle")
 
-            # Прыжок
             if self.up and not self.up_was_pressed:
                 if not self.player2.is_crouching and not self.player2.is_dashing and not self.player2.is_attacking:
                     self.player2.jump()
                 self.up_was_pressed = True
 
-            # Приседание
             if self.down and not self.down_was_pressed:
                 self.player2.crouch(True)
                 self.down_was_pressed = True
@@ -1688,7 +1770,6 @@ class OnlineGameView(arcade.View):
                 self.player2.crouch(False)
                 self.down_was_pressed = False
 
-            # Рывок
             if self.shift_was_pressed and not self.player2.is_dashing and self.player2.dash_cooldown == 0:
                 if self.left:
                     self.player2.dash(-1)
@@ -1697,14 +1778,12 @@ class OnlineGameView(arcade.View):
                 else:
                     self.player2.dash()
 
-            # Атака
             if self.attack_pressed and not self.player2.is_attacking:
                 self.player2.attack()
         else:
             self.player2.change_x = 0
 
     def send_my_state(self):
-        """Отправка состояния своего игрока"""
         my_player = self.player1 if self.is_host else self.player2
         state = {
             'x': my_player.center_x,
@@ -1722,7 +1801,6 @@ class OnlineGameView(arcade.View):
             self.network.send_state(state)
 
     def receive_opponent_state(self):
-        """Получение состояния противника"""
         if isinstance(self.network, GameServer):
             state = self.network.receive_state()
         elif isinstance(self.network, GameClient):
@@ -1751,7 +1829,6 @@ class OnlineGameView(arcade.View):
     def show_game_over(self, message):
         game_over_view = GameOverView(message)
         self.window.show_view(game_over_view)
-        # Закрываем сетевое соединение
         if isinstance(self.network, GameServer):
             self.network.stop()
         elif isinstance(self.network, GameClient):
@@ -1766,10 +1843,8 @@ class OnlineGameView(arcade.View):
                 arcade.XYWH(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2, SCREEN_WIDTH, SCREEN_HEIGHT)
             )
 
-        # Рисуем землю
         arcade.draw_line(0, GROUND_LEVEL, SCREEN_WIDTH, GROUND_LEVEL, arcade.color.GREEN, 3)
 
-        # Отрисовка
         if self.player1:
             self.player1.draw_stand()
         if self.player2:
@@ -1782,15 +1857,15 @@ class OnlineGameView(arcade.View):
 
         if self.player1:
             self.player1.draw_health_bar()
+            self.player1.draw_stand_meter()
         if self.player2:
             self.player2.draw_health_bar()
+            self.player2.draw_stand_meter()
 
-        # Индикатор подключения
         if hasattr(self.network, 'connected') and self.network.connected:
             arcade.draw_text("● ONLINE", SCREEN_WIDTH - 150, SCREEN_HEIGHT - 30,
                              arcade.color.GREEN, 16)
 
-        # Управление
         if self.is_host:
             arcade.draw_text("WASD + Shift (рывок) | Q - Стенд | R - Атака",
                              SCREEN_WIDTH // 4, 80, arcade.color.CYAN, 14, anchor_x="center")
@@ -1802,7 +1877,6 @@ class OnlineGameView(arcade.View):
 
     def on_key_press(self, key, modifiers):
         if self.is_host:
-            # Управление для хоста (игрок 1)
             if key == arcade.key.A:
                 self.left = True
             elif key == arcade.key.D:
@@ -1819,7 +1893,6 @@ class OnlineGameView(arcade.View):
             elif key == arcade.key.R:
                 self.attack_pressed = True
         else:
-            # Управление для гостя (игрок 2)
             if key == arcade.key.LEFT:
                 self.left = True
             elif key == arcade.key.RIGHT:
@@ -1869,12 +1942,12 @@ class OnlineGameView(arcade.View):
             elif key == arcade.key.SPACE:
                 self.attack_pressed = False
 
+
 class TestCharacterSelectView(arcade.View):
     def __init__(self):
         super().__init__()
         print("TestCharacterSelectView инициализирован")
 
-        # Настройка фона
         self.bg_sprite_list = arcade.SpriteList()
         bg_path = Path("Лого") / "fon_menu.png"
 
@@ -1955,7 +2028,6 @@ class TestCharacterSelectView(arcade.View):
         self.instruction_text.draw()
         self.start_text.draw()
 
-
     def _draw_char_element(self, character, i, x, y, player_num):
         if character in self.logos:
             tex = self.logos[character]
@@ -1981,31 +2053,23 @@ class TestCharacterSelectView(arcade.View):
         if key == arcade.key.UP:
             if self.current_player == 1:
                 self.p1_selected = (self.p1_selected - 1) % len(self.characters)
-                print(f"P1 выбирает: {self.characters[self.p1_selected]}")
             else:
                 self.p2_selected = (self.p2_selected - 1) % len(self.characters)
-                print(f"P2 выбирает: {self.characters[self.p2_selected]}")
         elif key == arcade.key.DOWN:
             if self.current_player == 1:
                 self.p1_selected = (self.p1_selected + 1) % len(self.characters)
-                print(f"P1 выбирает: {self.characters[self.p1_selected]}")
             else:
                 self.p2_selected = (self.p2_selected + 1) % len(self.characters)
-                print(f"P2 выбирает: {self.characters[self.p2_selected]}")
         elif key == arcade.key.ENTER:
             self.current_player = 2 if self.current_player == 1 else 1
-            print(f"Текущий игрок: {self.current_player}")
         elif key == arcade.key.SPACE:
             self.current_player = 3 - self.current_player
-            print(f"Текущий игрок: {self.current_player}")
         elif key == arcade.key.S:
             p1_char = self.characters[self.p1_selected]
             p2_char = self.characters[self.p2_selected]
-            print(f"Запуск игры: P1={p1_char}, P2={p2_char}")
             game_view = TestGameView(p1_char, p2_char)
             self.window.show_view(game_view)
         elif key == arcade.key.ESCAPE:
-            print("Возврат в меню режимов")
             self.window.show_view(ModeMenuView())
 
 
@@ -2015,15 +2079,12 @@ class TestGameView(arcade.View):
 
         self.p1_character_name = p1_character
         self.p2_character_name = p2_character
-        map_index = random.randint(0, 3)  # Выбираем число от 0 до 3
+        map_index = random.randint(0, 3)
         map_path = Path("Карта") / f"jojo_map_{map_index}.png"
 
         self.background = None
         if map_path.exists():
             self.background = arcade.load_texture(str(map_path))
-            print(f"Загружена карта: {map_path}")
-        else:
-            print(f"Ошибка: Файл {map_path} не найден!")
 
         # Флаги управления P1
         self.p1_left = False
@@ -2076,38 +2137,33 @@ class TestGameView(arcade.View):
         self.clear()
 
         if self.background:
-            # Рисуем карту на весь экран
             arcade.draw_texture_rect(
                 self.background,
                 arcade.XYWH(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2, SCREEN_WIDTH, SCREEN_HEIGHT)
             )
         else:
-            # Если карта не загрузилась, оставляем черный фон
             arcade.set_background_color(arcade.color.BLACK)
 
-        # Рисуем землю
         arcade.draw_line(0, GROUND_LEVEL, SCREEN_WIDTH, GROUND_LEVEL, arcade.color.GREEN, 3)
         arcade.draw_text("Земля", 20, GROUND_LEVEL - 30, arcade.color.GREEN, 14)
 
-        # Отрисовка стендов
         if self.player1:
             self.player1.draw_stand()
         if self.player2:
             self.player2.draw_stand()
 
-        # Отрисовка персонажей
         if self.player1:
             self.player1_list.draw()
         if self.player2:
             self.player2_list.draw()
 
-        # Отрисовка полосок здоровья в верхней части экрана
         if self.player1:
             self.player1.draw_health_bar()
+            self.player1.draw_stand_meter()
         if self.player2:
             self.player2.draw_health_bar()
+            self.player2.draw_stand_meter()
 
-        # Информация об игроках (можно убрать или оставить как есть)
         info_y = SCREEN_HEIGHT - 150
         if self.player1 and hasattr(self.player1, 'character_data'):
             arcade.draw_text("ИГРОК 1", SCREEN_WIDTH // 4, info_y, arcade.color.CYAN, 20, anchor_x="center")
@@ -2134,7 +2190,6 @@ class TestGameView(arcade.View):
                     combo_info += " (попадание)"
                 arcade.draw_text(combo_info, 3 * SCREEN_WIDTH // 4, info_y, arcade.color.YELLOW, 14, anchor_x="center")
 
-        # Управление
         arcade.draw_text("WASD + Shift (рывок) | Q - Стенд | R - Атака",
                          SCREEN_WIDTH // 4, 80, arcade.color.CYAN, 14, anchor_x="center")
         arcade.draw_text("Стрелки + Shift (рывок) | NUM 1 - Стенд | Пробел - Атака",
@@ -2142,7 +2197,7 @@ class TestGameView(arcade.View):
 
         arcade.draw_text("ESC - меню", SCREEN_WIDTH - 120, 30, arcade.color.GRAY, 14)
 
-        # Отрисовка хитбоксов для отладки (только когда персонаж атакует)
+        # Отрисовка хитбоксов для отладки
         if self.player1:
             self.draw_attack_hitbox(self.player1, arcade.color.RED)
         if self.player2:
@@ -2151,7 +2206,6 @@ class TestGameView(arcade.View):
     def draw_attack_hitbox(self, character, color):
         """Отрисовка хитбоксов для отладки"""
 
-        # 1. Рисуем кастомный хитбокс персонажа (зеленый)
         if hasattr(character, '_custom_hitbox') and character._custom_hitbox:
             hit_width, hit_height = character._custom_hitbox
         elif hasattr(character, 'hitbox_size'):
@@ -2173,7 +2227,6 @@ class TestGameView(arcade.View):
             (0, 255, 0, 30)
         )
 
-        # 2. Рисуем границы реального спрайта (желтый, для информации)
         sprite_left = character.center_x - character.width // 2
         sprite_right = character.center_x + character.width // 2
         sprite_bottom = character.center_y - character.height // 2
@@ -2184,15 +2237,10 @@ class TestGameView(arcade.View):
             arcade.color.YELLOW, 1
         )
 
-        # 3. Рисуем центр
         arcade.draw_circle_filled(character.center_x, character.center_y, 5, arcade.color.WHITE)
-
-        # Рисуем линию уровня земли для ориентира
         arcade.draw_line(0, GROUND_LEVEL, SCREEN_WIDTH, GROUND_LEVEL, arcade.color.GRAY, 1)
 
-        # 4. Рисуем хитбокс атаки
         if character.stand_active and character.stand and character.stand.is_attacking:
-            # Атака стендом
             attack_data = get_attack_data(character.character_name, f"stand_attack{character.stand.current_combo}")
             if attack_data:
                 hitbox_width, hitbox_height = attack_data.get("hitbox", (80, 100))
@@ -2209,7 +2257,6 @@ class TestGameView(arcade.View):
                 hitbox_bottom = hitbox_center_y - hitbox_height // 2
                 hitbox_top = hitbox_center_y + hitbox_height // 2
 
-                # Рисуем хитбокс атаки стенда (фиолетовый)
                 arcade.draw_lrbt_rectangle_outline(
                     hitbox_left, hitbox_right, hitbox_bottom, hitbox_top,
                     arcade.color.PURPLE, 3
@@ -2219,7 +2266,6 @@ class TestGameView(arcade.View):
                     (128, 0, 128, 30)
                 )
 
-                # Показываем информацию
                 if character.facing_right:
                     distance_x = hitbox_left - char_right
                     distance_y = hitbox_center_y - character.center_y
@@ -2227,13 +2273,11 @@ class TestGameView(arcade.View):
                                      character.center_x, character.center_y - 70,
                                      arcade.color.PURPLE, 12, anchor_x="center")
 
-                # Показываем offset_y
                 arcade.draw_text(f"off_y:{offset_y}",
                                  hitbox_left, hitbox_top + 20,
                                  arcade.color.PURPLE, 12)
 
         elif character.is_attacking and "stand" not in character.current_action:
-            # Обычная атака
             attack_data = get_attack_data(character.character_name, character.current_action)
             if attack_data:
                 hitbox_width, hitbox_height = attack_data.get("hitbox", (50, 50))
@@ -2250,7 +2294,6 @@ class TestGameView(arcade.View):
                 hitbox_bottom = hitbox_center_y - hitbox_height // 2
                 hitbox_top = hitbox_center_y + hitbox_height // 2
 
-                # Рисуем хитбокс атаки (красный/синий)
                 arcade.draw_lrbt_rectangle_outline(
                     hitbox_left, hitbox_right, hitbox_bottom, hitbox_top,
                     color, 3
@@ -2260,7 +2303,6 @@ class TestGameView(arcade.View):
                     (color[0], color[1], color[2], 30)
                 )
 
-                # Показываем информацию
                 if character.facing_right:
                     distance_x = hitbox_left - char_right
                     distance_y = hitbox_center_y - character.center_y
@@ -2268,20 +2310,16 @@ class TestGameView(arcade.View):
                                      character.center_x, character.center_y - 70,
                                      color, 12, anchor_x="center")
 
-                # Показываем offset_y
                 arcade.draw_text(f"off_y:{offset_y}",
                                  hitbox_left, hitbox_top + 20,
                                  color, 12)
 
-        # Информация о персонаже
         arcade.draw_text(f"Размер спрайта: {character.width:.0f} x {character.height:.0f}",
                          character.center_x, character.center_y - 90,
                          arcade.color.WHITE, 12, anchor_x="center")
         arcade.draw_text(f"Кастомный хитбокс: {hit_width:.0f} x {hit_height:.0f}",
                          character.center_x, character.center_y - 105,
                          arcade.color.GREEN, 12, anchor_x="center")
-
-
 
     def on_update(self, delta_time):
         if not self.player1 or not self.player2:
@@ -2321,7 +2359,7 @@ class TestGameView(arcade.View):
                     self.player1.set_action("idle")
 
             if self.p1_up and not self.p1_w_was_pressed:
-                if not self.player1.is_crouching and self.player1.current_action != "crouch" and not self.player1.is_dashing and not self.player1.is_attacking:
+                if not self.player1.is_crouching and not self.player1.is_dashing and not self.player1.is_attacking:
                     self.player1.jump()
                 self.p1_w_was_pressed = True
 
@@ -2332,6 +2370,17 @@ class TestGameView(arcade.View):
             if not self.p1_down and self.p1_s_was_pressed:
                 self.player1.crouch(False)
                 self.p1_s_was_pressed = False
+
+            if self.p1_shift_was_pressed and not self.player1.is_dashing and self.player1.dash_cooldown == 0:
+                if self.p1_left:
+                    self.player1.dash(-1)
+                elif self.p1_right:
+                    self.player1.dash(1)
+                else:
+                    self.player1.dash()
+
+            if self.p1_attack_pressed and not self.player1.is_attacking:
+                self.player1.attack()
         else:
             self.player1.change_x = 0
 
@@ -2362,7 +2411,7 @@ class TestGameView(arcade.View):
                     self.player2.set_action("idle")
 
             if self.p2_up and not self.p2_up_was_pressed:
-                if not self.player2.is_crouching and self.player2.current_action != "crouch" and not self.player2.is_dashing and not self.player2.is_attacking:
+                if not self.player2.is_crouching and not self.player2.is_dashing and not self.player2.is_attacking:
                     self.player2.jump()
                 self.p2_up_was_pressed = True
 
@@ -2373,6 +2422,17 @@ class TestGameView(arcade.View):
             if not self.p2_down and self.p2_down_was_pressed:
                 self.player2.crouch(False)
                 self.p2_down_was_pressed = False
+
+            if self.p2_shift_was_pressed and not self.player2.is_dashing and self.player2.dash_cooldown == 0:
+                if self.p2_left:
+                    self.player2.dash(-1)
+                elif self.p2_right:
+                    self.player2.dash(1)
+                else:
+                    self.player2.dash()
+
+            if self.p2_attack_pressed and not self.player2.is_attacking:
+                self.player2.attack()
         else:
             self.player2.change_x = 0
 
@@ -2409,13 +2469,6 @@ class TestGameView(arcade.View):
                 self.player1.toggle_stand()
         elif key == arcade.key.LSHIFT or key == arcade.key.RSHIFT:
             self.p1_shift_was_pressed = True
-            if self.player1 and not self.player1.is_dashing and self.player1.dash_cooldown == 0 and not self.player1.is_summoning and not self.player1.is_attacking:
-                if self.p1_left:
-                    self.player1.dash(-1)
-                elif self.p1_right:
-                    self.player1.dash(1)
-                else:
-                    self.player1.dash()
         elif key == arcade.key.J:
             if self.player1 and not self.p1_attack_pressed:
                 self.player1.attack()
@@ -2435,13 +2488,6 @@ class TestGameView(arcade.View):
                 self.player2.toggle_stand()
         elif key == arcade.key.RCTRL:
             self.p2_shift_was_pressed = True
-            if self.player2 and not self.player2.is_dashing and self.player2.dash_cooldown == 0 and not self.player2.is_summoning and not self.player2.is_attacking:
-                if self.p2_left:
-                    self.player2.dash(-1)
-                elif self.p2_right:
-                    self.player2.dash(1)
-                else:
-                    self.player2.dash()
         elif key == arcade.key.SPACE:
             if self.player2 and not self.p2_attack_pressed:
                 self.player2.attack()

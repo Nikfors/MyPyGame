@@ -120,6 +120,7 @@ JOTARO_STAND = {
     "file_prefix": "SP",
     "frame_ranges": {
         "idle": (0, 19),
+        "block": (40, 45),
         "move_forward": (41, 47),
         "move_backward": (49, 55),
         "jump": (69, 83),

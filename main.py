@@ -3038,7 +3038,6 @@ class TestGameView(arcade.View):
             self.loser.stand = None
             self.loser.stand_sprite_list.clear()
 
-        # Разворачиваем победителя к проигравшему
         if self.winner.center_x < self.loser.center_x:
             self.winner.facing_right = True
             self.loser.facing_right = False

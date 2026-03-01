@@ -58,6 +58,10 @@ POINTS_PER_JUMP = 1
 POINTS_PER_STAND_SUMMON = 15
 POINTS_WIN_BONUS = 50
 
+# Константы для урона стенду
+STAND_DAMAGE_DRAIN = 15
+STAND_DAMAGE_DRAIN_NO_STAND = 5
+
 
 class Database:
     """Класс для работы с базой данных SQLite"""
@@ -303,8 +307,14 @@ class Stand(arcade.Sprite):
         self.folder_name = self.stand_data["folder_name"]
         self.file_prefix = self.stand_data["file_prefix"]
 
-        self.frame_ranges = self.stand_data["frame_ranges"]
-        self.animation_speeds = self.stand_data["animation_speeds"]
+        # Используем animations словарь
+        self.animations = self.stand_data["animations"]
+        self.frame_ranges = {}
+        self.animation_speeds = {}
+        for anim_name, (frames, speed) in self.animations.items():
+            self.frame_ranges[anim_name] = frames
+            self.animation_speeds[anim_name] = speed
+
         self.jump_loop = self.stand_data.get("jump_loop", None)
 
         self.scale = self.stand_data["sprite_scale"]
@@ -368,20 +378,26 @@ class Stand(arcade.Sprite):
         self.frame_counter = 0
 
     def start_attack(self, combo_number):
+        """Запуск атаки стенда по номеру"""
+        # Проверяем, что такая атака существует
+        attack_name = f"attack{combo_number}"
+        if attack_name not in self.frame_ranges:
+            print(f"Атака стенда {attack_name} не найдена")
+            return False
+
         self.current_combo = combo_number
         self.is_attacking = True
         self.has_hit_in_this_attack = False
-        attack_name = f"attack{combo_number}"
 
-        if attack_name in self.frame_ranges:
-            self.set_action(attack_name)
-            start_frame, end_frame = self.frame_ranges[attack_name]
-            frame_count = end_frame - start_frame + 1
-            anim_speed = self.animation_speeds.get(attack_name, 5)
-            self.attack_duration = frame_count * anim_speed
-            self.attack_timer = self.attack_duration
+        self.set_action(attack_name)
+        start_frame, end_frame = self.frame_ranges[attack_name]
+        frame_count = end_frame - start_frame + 1
+        anim_speed = self.animation_speeds.get(attack_name, 5)
+        self.attack_duration = frame_count * anim_speed
+        self.attack_timer = self.attack_duration
 
-            print(f"Стенд атакует! Длительность: {self.attack_duration} кадров")
+        print(f"Стенд атакует! Атака {combo_number}, длительность: {self.attack_duration} кадров")
+        return True
 
     def check_attack_hit(self, opponent):
         if not self.is_attacking or self.has_hit_in_this_attack or not opponent:
@@ -437,8 +453,7 @@ class Stand(arcade.Sprite):
             opponent.take_damage(damage, knockback * knockback_dir)
             self.owner.attack_hit = True
 
-            # Добавляем очки за попадание
-            if hasattr(self.owner, 'stats'):
+            if hasattr(self.owner, 'stats') and self.owner.stats is not None:
                 self.owner.stats.add_hit()
 
             print(f"Стенд ПОПАЛ! Урон: {damage}")
@@ -491,6 +506,7 @@ class Stand(arcade.Sprite):
             if self.attack_timer <= 0:
                 self.is_attacking = False
 
+        # Позиция стенда относительно персонажа
         dir_mult = 1 if self.owner.facing_right else -1
         self.center_x = self.owner.center_x - (self.stand_data["offset_x"] * dir_mult)
         self.center_y = self.owner.center_y + self.stand_data["offset_y"]
@@ -505,11 +521,13 @@ class Stand(arcade.Sprite):
         elif not self.is_summoning and not self.is_attacking:
             owner_action = self.owner.current_action
 
-            if owner_action in ["idle", "move_right", "move_left", "jump", "crouch", "dash_forward", "dash_backward"]:
-                if owner_action == "move_right":
-                    stand_action = "move_forward" if self.owner.facing_right else "move_backward"
-                elif owner_action == "move_left":
-                    stand_action = "move_forward" if not self.owner.facing_right else "move_backward"
+            if owner_action in ["idle", "move_left", "move_right", "jump", "crouch", "dash_forward", "dash_backward"]:
+                if owner_action == "move_left":
+                    # При движении влево, стенд всегда двигается влево
+                    stand_action = "move_backward"
+                elif owner_action == "move_right":
+                    # При движении вправо, стенд всегда двигается вправо
+                    stand_action = "move_forward"
                 elif owner_action == "jump":
                     stand_action = "jump"
                 elif owner_action in ["dash_forward", "dash_backward"]:
@@ -540,8 +558,14 @@ class Character(arcade.Sprite):
         self.hitbox_size = self.character_data.get("hitbox_size", (60, 120))
         self.sprite_scale = self.character_data.get("sprite_scale", 0.5)
 
-        self.all_textures = [{}, {}]
-        self.frame_ranges = self.character_data["frame_ranges"]
+        # Используем animations словарь
+        self.animations = self.character_data["animations"]
+        self.frame_ranges = {}
+        self.animation_speeds = {}
+        for anim_name, (frames, speed) in self.animations.items():
+            self.frame_ranges[anim_name] = frames
+            self.animation_speeds[anim_name] = speed
+
         self._load_textures_only()
 
         first_texture = None
@@ -558,26 +582,35 @@ class Character(arcade.Sprite):
         self.movement_speed = self.character_data.get("movement_speed", 3)
         self.jump_speed = self.character_data.get("jump_speed", 15)
         self.base_animation_speed = self.character_data.get("animation_speed", 5)
-        self.animation_speeds = self.character_data.get("animation_speeds", {})
         self.crouch_freeze_frame = self.character_data.get("crouch_freeze_frame", None)
 
         self.jump_loop = self.character_data.get("jump_loop", None)
 
         self.attacks_data = self.character_data.get("attacks", {})
-        self.combo_window = self.character_data.get("combo_window", 30)
 
-        self.combo_counter = 0
-        self.combo_timer = 0
-        self.attack_hit = False
-        self.can_attack = True
-        self.attack_cooldown = 0
+        # Индивидуальные кулдауны для каждой атаки (в кадрах)
+        self.attack1_cooldown_max = 15  # Очень маленький кулдаун
+        self.attack2_cooldown_max = 30  # Средний кулдаун
+        self.attack3_cooldown_max = 45  # Большой кулдаун
+
+        self.attack1_cooldown = 0
+        self.attack2_cooldown = 0
+        self.attack3_cooldown = 0
+
+        # Флаги для атак
         self.is_attacking = False
+        self.current_attack = None  # Какая атака сейчас выполняется: "attack1", "attack2", "attack3" или "stand_attack1/2/3"
+        self.attack_hit = False
         self.has_hit_in_this_attack = False
 
         self.hit_cooldown = 0
         self.is_hit = False
         self.knockback_velocity = 0
         self.knockback_timer = 0
+
+        # Переменные для анимации получения урона
+        self.is_hit_animating = False
+        self.hit_timer = 0
 
         self.dash_speed = self.character_data.get("dash_speed", 8)
         self.dash_distance = self.character_data.get("dash_distance", 100)
@@ -651,6 +684,7 @@ class Character(arcade.Sprite):
         for start, end in self.frame_ranges.values():
             max_frame = max(max_frame, end)
 
+        self.all_textures = [{}, {}]
         for i in range(max_frame + 1):
             filename = f"{self.file_prefix}_0-{i}.png"
             file_path = character_path / filename
@@ -717,16 +751,18 @@ class Character(arcade.Sprite):
         return None
 
     def get_action_for_movement(self, moving_left, moving_right):
-        if self.facing_right:
-            if moving_left:
-                return "move_left"
-            elif moving_right:
-                return "move_right"
-        else:
-            if moving_left:
-                return "move_right"
-            elif moving_right:
-                return "move_left"
+        """
+        Определяет анимацию движения в зависимости от направления движения и направления взгляда
+        moving_left: True если игрок нажал кнопку движения влево
+        moving_right: True если игрок нажал кнопку движения вправо
+        """
+        if moving_left and moving_right:
+            return None
+
+        if moving_left:
+            return "move_right"
+        elif moving_right:
+            return "move_left"
         return None
 
     def jump(self):
@@ -739,8 +775,7 @@ class Character(arcade.Sprite):
             self.double_jump_used = False
             self.set_action("jump")
 
-            # Добавляем очки за прыжок
-            if self.stats:
+            if hasattr(self, 'stats') and self.stats is not None:
                 self.stats.add_jump()
 
             return True
@@ -751,8 +786,7 @@ class Character(arcade.Sprite):
             if "jump" in self.frame_ranges:
                 self.current_frame = self.frame_ranges["jump"][0]
 
-            # Добавляем очки за двойной прыжок
-            if self.stats:
+            if hasattr(self, 'stats') and self.stats is not None:
                 self.stats.add_jump()
 
             return True
@@ -815,8 +849,7 @@ class Character(arcade.Sprite):
         self.set_action(dash_action)
         self.dash_cooldown = self.dash_cooldown_max
 
-        # Добавляем очки за рывок
-        if self.stats:
+        if hasattr(self, 'stats') and self.stats is not None:
             self.stats.add_dash()
 
         return True
@@ -843,8 +876,7 @@ class Character(arcade.Sprite):
                 self.stand = Stand(self)
                 self.stand_sprite_list.append(self.stand)
 
-                # Добавляем очки за призыв стенда
-                if self.stats:
+                if hasattr(self, 'stats') and self.stats is not None:
                     self.stats.add_stand_summon()
 
                 print(
@@ -854,58 +886,108 @@ class Character(arcade.Sprite):
                 print(f"Недостаточно шкалы стенда: {self.stand_meter:.1f}/100, нужно {STAND_METER_SUMMON_COST}")
                 return False
 
-    def attack(self):
-        if not self.can_attack or self.is_summoning or self.is_dashing or self.is_jumping or self.is_blocking:
+    def attack1(self):
+        """Первая атака (J) - если стенд активен, атакует стенд и проигрывает стойку"""
+        if self.attack1_cooldown > 0 or self.is_summoning or self.is_dashing or self.is_jumping or self.is_blocking:
             return False
 
         if self.stand_active:
-            attack_prefix = "stand_attack"
+            # Если стенд активен - атакует стенд, персонаж проигрывает стойку
+            if self.stand and not self.stand.is_attacking:
+                # Запускаем атаку стенда
+                self.stand.start_attack(1)
+                # Персонаж проигрывает стойку
+                self.start_attack("stand_attack1")
+                print(f"Игрок {self.player_number} активирует атаку стенда 1 со стойкой")
+                return True
         else:
-            attack_prefix = "attack"
+            # Если стенд не активен - атакует персонаж
+            if "attack1" not in self.frame_ranges:
+                print("Атака 1 не найдена")
+                return False
 
-        # Проверка на кулдаун после комбо
-        if hasattr(self, 'combo_cooldown') and self.combo_cooldown > 0:
-            print(f"Кулдаун комбо: {self.combo_cooldown}")
+            self.start_attack("attack1")
+            return True
+
+        return False
+
+    def attack2(self):
+        """Вторая атака (I) - если стенд активен, атакует стенд и проигрывает стойку"""
+        if self.attack2_cooldown > 0 or self.is_summoning or self.is_dashing or self.is_jumping or self.is_blocking:
             return False
 
-        if self.combo_timer > 0 and self.combo_counter > 0:
-            if self.attack_hit and self.combo_counter < 3:
-                self.combo_counter += 1
-                print(f"Комбо продолжается! Удар {self.combo_counter}")
-            else:
-                # Если комбо не продолжилось, устанавливаем кулдаун
-                self.combo_counter = 1
-                if self.combo_timer <= 0 or not self.attack_hit:
-                    self.combo_cooldown = 60  # Кулдаун 60 кадров (примерно 1 секунда при 60 fps)
-                    print(f"Комбо прервано, кулдаун {self.combo_cooldown}")
+        if self.stand_active:
+            # Если стенд активен - атакует стенд, персонаж проигрывает стойку
+            if self.stand and not self.stand.is_attacking:
+                # Запускаем атаку стенда
+                self.stand.start_attack(2)
+                # Персонаж проигрывает стойку
+                self.start_attack("stand_attack2")
+                print(f"Игрок {self.player_number} активирует атаку стенда 2 со стойкой")
+                return True
         else:
-            self.combo_counter = 1
-            print(f"Новое комбо с удара 1")
+            # Если стенд не активен - атакует персонаж
+            if "attack2" not in self.frame_ranges:
+                print("Атака 2 не найдена")
+                return False
 
-        attack_name = f"{attack_prefix}{self.combo_counter}"
+            self.start_attack("attack2")
+            return True
 
-        if attack_name not in self.frame_ranges:
-            print(f"Атака {attack_name} не найдена")
+        return False
+
+    def attack3(self):
+        """Третья атака (L) - если стенд активен, атакует стенд и проигрывает стойку"""
+        if self.attack3_cooldown > 0 or self.is_summoning or self.is_dashing or self.is_jumping or self.is_blocking:
             return False
 
-        self.stand_meter = min(self.stand_meter_max, self.stand_meter + STAND_METER_GAIN_ON_ATTACK)
+        if self.stand_active:
+            # Если стенд активен - атакует стенд, персонаж проигрывает стойку
+            if self.stand and not self.stand.is_attacking:
+                # Запускаем атаку стенда
+                self.stand.start_attack(3)
+                # Персонаж проигрывает стойку
+                self.start_attack("stand_attack3")
+                print(f"Игрок {self.player_number} активирует атаку стенда 3 со стойкой")
+                return True
+        else:
+            # Если стенд не активен - атакует персонаж
+            if "attack3" not in self.frame_ranges:
+                print("Атака 3 не найдена")
+                return False
 
-        self.attack_hit = False
+            self.start_attack("attack3")
+            return True
+
+        return False
+
+    def start_attack(self, attack_name):
+        """Общий метод для запуска атаки персонажа"""
+        self.current_attack = attack_name
         self.is_attacking = True
-        self.can_attack = False
-        self.attack_cooldown = ATTACK_COOLDOWN
+        self.attack_hit = False
         self.has_hit_in_this_attack = False
         self.change_x = 0
 
+        # Устанавливаем соответствующий кулдаун
+        if attack_name == "attack1" or attack_name == "stand_attack1":
+            self.attack1_cooldown = self.attack1_cooldown_max
+        elif attack_name == "attack2" or attack_name == "stand_attack2":
+            self.attack2_cooldown = self.attack2_cooldown_max
+        elif attack_name == "attack3" or attack_name == "stand_attack3":
+            self.attack3_cooldown = self.attack3_cooldown_max
+
         self.set_action(attack_name)
-        self.combo_timer = COMBO_WINDOW
 
-        if self.stand_active and self.stand:
-            self.stand.start_attack(self.combo_counter)
+        # Пополнение шкалы стенда за атаку (только если это атака персонажа, не стойка)
+        if "stand_" not in attack_name:
+            self.stand_meter = min(self.stand_meter_max, self.stand_meter + STAND_METER_GAIN_ON_ATTACK)
 
+        print(f"Игрок {self.player_number} выполняет атаку {attack_name}")
         return True
 
     def check_attack_hit(self):
+        """Проверка попадания текущей атаки"""
         if not self.is_attacking or self.has_hit_in_this_attack or not self.opponent:
             return False
 
@@ -962,24 +1044,45 @@ class Character(arcade.Sprite):
 
             self.stand_meter = min(self.stand_meter_max, self.stand_meter + STAND_METER_GAIN_ON_ATTACK)
 
-            # Добавляем очки за попадание
-            if self.stats:
+            if hasattr(self, 'stats') and self.stats is not None:
                 self.stats.add_hit()
-
-                # Если это комбо-удар
-                if self.combo_counter > 1:
-                    self.stats.add_combo()
 
             return True
 
         return False
 
+    def start_hit_animation(self):
+        """Запуск анимации получения урона"""
+        if "hit" in self.animations:
+            self.is_hit_animating = True
+            self.hit_timer = 15  # Длительность анимации
+            self.set_action("hit")
+
     def take_damage(self, damage, knockback_force):
         if self.hit_cooldown > 0:
             return
 
+        # Тратим шкалу стенда при получении урона
+        if self.stand_active:
+            drain_amount = self.character_data.get("stand_damage_drain", STAND_DAMAGE_DRAIN)
+            self.stand_meter = max(0, self.stand_meter - drain_amount)
+
+            # Если шкала закончилась - отключаем стенд
+            if self.stand_meter <= 0:
+                self.stand_meter = 0
+                self.stand_active = False
+                self.stand = None
+                self.stand_sprite_list.clear()
+                print(f"Стенд игрока {self.player_number} отключен из-за истощения шкалы")
+        else:
+            drain_amount = self.character_data.get("stand_damage_drain_no_stand", STAND_DAMAGE_DRAIN_NO_STAND)
+            self.stand_meter = max(0, self.stand_meter - drain_amount)
+
         if not self.is_blocking:
             self.stand_meter = min(self.stand_meter_max, self.stand_meter + STAND_METER_GAIN_ON_HIT)
+
+        # Запускаем анимацию получения урона
+        self.start_hit_animation()
 
         if self.is_blocking:
             if self.stand_active:
@@ -987,8 +1090,7 @@ class Character(arcade.Sprite):
                     self.stand_meter -= STAND_METER_BLOCK_DRAIN
                     self.stand_meter = min(self.stand_meter_max, self.stand_meter + STAND_METER_GAIN_ON_BLOCK)
 
-                    # Добавляем очки за успешный блок
-                    if self.stats:
+                    if hasattr(self, 'stats') and self.stats is not None:
                         self.stats.add_block()
 
                     if self.stand_meter <= 0:
@@ -1007,8 +1109,7 @@ class Character(arcade.Sprite):
                 if self.stand_meter >= STAND_METER_BLOCK_DRAIN_NO_STAND:
                     self.stand_meter -= STAND_METER_BLOCK_DRAIN_NO_STAND
 
-                    # Добавляем очки за успешный блок
-                    if self.stats:
+                    if hasattr(self, 'stats') and self.stats is not None:
                         self.stats.add_block()
 
                     reduced_damage = int(damage * 0.5)
@@ -1155,9 +1256,6 @@ class Character(arcade.Sprite):
             if texture:
                 self.texture = texture
 
-            if "stand_attack" in new_action:
-                self.stand_pose_start, self.stand_pose_end = self.frame_ranges[new_action]
-
             if "attack" in new_action:
                 self.change_x = 0
 
@@ -1194,14 +1292,11 @@ class Character(arcade.Sprite):
                         self.set_action("idle")
 
             elif self.current_action in ["intro", "victory", "defeat"]:
-                # Для специальных анимаций - проигрываем один раз и останавливаемся
                 self.current_frame += 1
                 if self.current_frame > end_frame:
                     if self.current_action == "intro":
-                        # Для интро зацикливаем, пока не закончится таймер
                         self.current_frame = start_frame
                     else:
-                        # Для victory/defeat останавливаемся на последнем кадре
                         self.current_frame = end_frame
 
             elif self.current_action == "stand_summon":
@@ -1244,20 +1339,19 @@ class Character(arcade.Sprite):
                         self.dash_direction = 0
                     self.set_action("idle")
 
-            elif "stand_attack" in self.current_action:
-                self.current_frame += 1
-                if self.current_frame > end_frame:
-                    self.current_frame = start_frame
-
-                if self.stand_active and self.stand and not self.stand.is_attacking:
-                    self.is_attacking = False
-                    self.set_action("idle")
-
             elif "attack" in self.current_action and "stand" not in self.current_action:
                 self.current_frame += 1
                 if self.current_frame > end_frame:
                     self.is_attacking = False
                     self.set_action("idle")
+
+            elif self.current_action == "hit":
+                self.current_frame += 1
+                if self.current_frame > end_frame:
+                    if self.is_hit_animating:
+                        self.is_hit_animating = False
+                    if not self.is_attacking and not self.is_dashing and not self.is_jumping:
+                        self.set_action("idle")
 
             else:
                 self.current_frame += 1
@@ -1269,6 +1363,14 @@ class Character(arcade.Sprite):
                 self.texture = texture
 
     def update(self):
+        # Обновление кулдаунов атак
+        if self.attack1_cooldown > 0:
+            self.attack1_cooldown -= 1
+        if self.attack2_cooldown > 0:
+            self.attack2_cooldown -= 1
+        if self.attack3_cooldown > 0:
+            self.attack3_cooldown -= 1
+
         if self.dash_cooldown > 0:
             self.dash_cooldown -= 1
 
@@ -1277,13 +1379,11 @@ class Character(arcade.Sprite):
         else:
             self.is_hit = False
 
-        if self.combo_cooldown > 0:
-            self.combo_cooldown -= 1
-
-        if self.attack_cooldown > 0:
-            self.attack_cooldown -= 1
-        else:
-            self.can_attack = True
+        # Обновление таймера анимации получения урона
+        if self.hit_timer > 0:
+            self.hit_timer -= 1
+            if self.hit_timer <= 0:
+                self.is_hit_animating = False
 
         if self.is_blocking:
             self.block_timer -= 1
@@ -1293,24 +1393,29 @@ class Character(arcade.Sprite):
         if not self.stand_active:
             self.stand_meter = min(self.stand_meter_max, self.stand_meter + STAND_METER_PASSIVE_GAIN)
 
-        if self.combo_timer > 0:
-            self.combo_timer -= 1
-            if self.combo_timer <= 0:
-                self.combo_counter = 0
-                self.attack_hit = False
-
         if self.knockback_timer > 0:
             self.knockback_timer -= 1
             self.center_x += self.knockback_velocity
             self.knockback_velocity *= 0.8
 
+        # Проверка попадания атаки персонажа
         if self.is_attacking and not self.stand_active and "attack" in self.current_action and "stand" not in self.current_action:
             self.check_attack_hit()
 
-        if not self.is_attacking and not self.is_blocking:
+        # Проверка окончания атаки стенда
+        if self.stand_active and self.stand:
+            if not self.stand.is_attacking and self.is_attacking:
+                if "stand_attack" in self.current_attack:
+                    # Если атака стенда закончилась, персонаж возвращается в idle
+                    self.is_attacking = False
+                    self.current_attack = None
+                    if not self.is_jumping and not self.is_dashing:
+                        self.set_action("idle")
+
+        if not self.is_attacking and not self.is_blocking and not self.is_hit_animating:
             self.update_facing_direction()
 
-        if self.can_move():
+        if self.can_move() and not self.is_hit_animating:
             self.center_x += self.change_x
         else:
             self.change_x = 0
@@ -1789,7 +1894,7 @@ class OneVsOneGameView(arcade.View):
         self.show_stats = False
         self.stats_timer = 0
 
-        # Флаги управления P1 (WASD + E/X)
+        # Флаги управления P1 (WASD + J/I/L)
         self.p1_left = False
         self.p1_right = False
         self.p1_up = False
@@ -1797,7 +1902,9 @@ class OneVsOneGameView(arcade.View):
         self.p1_w_was_pressed = False
         self.p1_s_was_pressed = False
         self.p1_shift_was_pressed = False
-        self.p1_attack_pressed = False
+        self.p1_attack1_pressed = False  # J
+        self.p1_attack2_pressed = False  # I
+        self.p1_attack3_pressed = False  # L
         self.p1_stand_pressed = False
 
         # Флаги управления P2 (IJKL + U/M)
@@ -1945,7 +2052,7 @@ class OneVsOneGameView(arcade.View):
                                  SCREEN_WIDTH // 4, info_y, arcade.color.WHITE, 14, anchor_x="center")
                 info_y -= 25
                 if self.player1.is_attacking:
-                    combo_info = f"Комбо: {self.player1.combo_counter}/3"
+                    combo_info = f"Атака: {self.player1.current_attack}"
                     if self.player1.attack_hit:
                         combo_info += " (попадание)"
                     arcade.draw_text(combo_info, SCREEN_WIDTH // 4, info_y, arcade.color.YELLOW, 14, anchor_x="center")
@@ -1958,14 +2065,14 @@ class OneVsOneGameView(arcade.View):
                                  3 * SCREEN_WIDTH // 4, info_y, arcade.color.WHITE, 14, anchor_x="center")
                 info_y -= 25
                 if self.player2.is_attacking:
-                    combo_info = f"Комбо: {self.player2.combo_counter}/3"
+                    combo_info = f"Атака: {self.player2.current_attack}"
                     if self.player2.attack_hit:
                         combo_info += " (попадание)"
                     arcade.draw_text(combo_info, 3 * SCREEN_WIDTH // 4, info_y, arcade.color.YELLOW, 14,
                                      anchor_x="center")
 
-            # Текст управления без хитбоксов
-            arcade.draw_text("WASD - движение | E - Атака | X - Стенд | Shift - рывок",
+            # Текст управления
+            arcade.draw_text("WASD + Shift | J - Атака 1 | I - Атака 2 | L - Атака 3 | K - Стенд",
                              SCREEN_WIDTH // 4, 80, arcade.color.CYAN, 14, anchor_x="center")
             arcade.draw_text("IJKL - движение | U - Атака | M - Стенд | Shift - рывок",
                              3 * SCREEN_WIDTH // 4, 80, arcade.color.ORANGE, 14, anchor_x="center")
@@ -1988,9 +2095,7 @@ class OneVsOneGameView(arcade.View):
                          arcade.color.WHITE, 16, anchor_x="center")
         arcade.draw_text(f"Рывков: {self.p1_stats.dashes_used}", SCREEN_WIDTH // 4, y_start - 40,
                          arcade.color.WHITE, 16, anchor_x="center")
-        arcade.draw_text(f"Комбо: {self.p1_stats.combos_completed}", SCREEN_WIDTH // 4, y_start - 70,
-                         arcade.color.WHITE, 16, anchor_x="center")
-        arcade.draw_text(f"Очки: {self.p1_stats.points_earned}", SCREEN_WIDTH // 4, y_start - 100,
+        arcade.draw_text(f"Очки: {self.p1_stats.points_earned}", SCREEN_WIDTH // 4, y_start - 70,
                          arcade.color.GOLD, 18, anchor_x="center", bold=True)
 
         # Статистика игрока 2
@@ -2002,9 +2107,7 @@ class OneVsOneGameView(arcade.View):
                          arcade.color.WHITE, 16, anchor_x="center")
         arcade.draw_text(f"Рывков: {self.p2_stats.dashes_used}", 3 * SCREEN_WIDTH // 4, y_start - 40,
                          arcade.color.WHITE, 16, anchor_x="center")
-        arcade.draw_text(f"Комбо: {self.p2_stats.combos_completed}", 3 * SCREEN_WIDTH // 4, y_start - 70,
-                         arcade.color.WHITE, 16, anchor_x="center")
-        arcade.draw_text(f"Очки: {self.p2_stats.points_earned}", 3 * SCREEN_WIDTH // 4, y_start - 100,
+        arcade.draw_text(f"Очки: {self.p2_stats.points_earned}", 3 * SCREEN_WIDTH // 4, y_start - 70,
                          arcade.color.GOLD, 18, anchor_x="center", bold=True)
 
         arcade.draw_text("Нажмите ENTER для продолжения", SCREEN_WIDTH // 2, y_start - 150,
@@ -2046,7 +2149,7 @@ class OneVsOneGameView(arcade.View):
             self.show_game_over(self.player1, self.player2)
             return
 
-        # ИГРОК 1 (WASD + E/X)
+        # ИГРОК 1 (WASD + J/I/L)
         if not self.player1.is_summoning and not self.player1.is_hit:
             if not self.player1.is_dashing and not self.player1.is_attacking:
                 self.player1.change_x = 0
@@ -2093,8 +2196,13 @@ class OneVsOneGameView(arcade.View):
                 else:
                     self.player1.dash()
 
-            if self.p1_attack_pressed and not self.player1.is_attacking:
-                self.player1.attack()
+            # Обработка трех разных атак
+            if self.p1_attack1_pressed:
+                self.player1.attack1()
+            if self.p1_attack2_pressed:
+                self.player1.attack2()
+            if self.p1_attack3_pressed:
+                self.player1.attack3()
 
             if self.p1_stand_pressed and not self.player1.is_summoning and not self.player1.is_attacking:
                 self.player1.toggle_stand()
@@ -2242,7 +2350,7 @@ class OneVsOneGameView(arcade.View):
                 self.window.show_view(ModeMenuView())
             return
 
-        # Игрок 1 (WASD + E/X)
+        # Игрок 1 (WASD + J/I/L)
         if key == arcade.key.A:
             self.p1_left = True
         elif key == arcade.key.D:
@@ -2253,11 +2361,13 @@ class OneVsOneGameView(arcade.View):
             self.p1_down = True
         elif key == arcade.key.LSHIFT or key == arcade.key.RSHIFT:
             self.p1_shift_was_pressed = True
-        elif key == arcade.key.E:
-            if self.player1 and not self.p1_attack_pressed:
-                self.player1.attack()
-                self.p1_attack_pressed = True
-        elif key == arcade.key.X:
+        elif key == arcade.key.J:  # Атака 1
+            self.p1_attack1_pressed = True
+        elif key == arcade.key.I:  # Атака 2
+            self.p1_attack2_pressed = True
+        elif key == arcade.key.L:  # Атака 3
+            self.p1_attack3_pressed = True
+        elif key == arcade.key.K:  # Стенд
             self.p1_stand_pressed = True
 
         # Игрок 2 (IJKL + U/M)
@@ -2298,8 +2408,12 @@ class OneVsOneGameView(arcade.View):
             self.p1_s_was_pressed = False
         elif key == arcade.key.LSHIFT or key == arcade.key.RSHIFT:
             self.p1_shift_was_pressed = False
-        elif key == arcade.key.E:
-            self.p1_attack_pressed = False
+        elif key == arcade.key.J:
+            self.p1_attack1_pressed = False
+        elif key == arcade.key.I:
+            self.p1_attack2_pressed = False
+        elif key == arcade.key.L:
+            self.p1_attack3_pressed = False
 
         # Игрок 2
         elif key == arcade.key.J:
@@ -2441,9 +2555,11 @@ class TestCharacterSelectView(arcade.View):
             SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100,
             arcade.color.WHITE, 36, anchor_x="center"
         )
-        self.p1_text = arcade.Text("ИГРОК 1 (WASD)", SCREEN_WIDTH // 4, SCREEN_HEIGHT - 150, arcade.color.CYAN, 28,
+        self.p1_text = arcade.Text("ИГРОК 1 (WASD + J/I/L)", SCREEN_WIDTH // 4, SCREEN_HEIGHT - 150, arcade.color.CYAN,
+                                   28,
                                    anchor_x="center")
-        self.p2_text = arcade.Text("ИГРОК 2 (Стрелки)", 3 * SCREEN_WIDTH // 4, SCREEN_HEIGHT - 150, arcade.color.ORANGE,
+        self.p2_text = arcade.Text("ИГРОК 2 (ГЕЙМПАД + Стрелки)", 3 * SCREEN_WIDTH // 4, SCREEN_HEIGHT - 150,
+                                   arcade.color.ORANGE,
                                    28, anchor_x="center")
         self.instruction_text = arcade.Text("ENTER - выбрать | ПРОБЕЛ - переключить | ESC - назад", SCREEN_WIDTH // 2,
                                             80, arcade.color.GRAY, 16, anchor_x="center")
@@ -2562,7 +2678,7 @@ class TestGameView(arcade.View):
         self.winner = None
         self.loser = None
 
-        # Флаги управления P1
+        # Флаги управления P1 (WASD + J/I/L)
         self.p1_left = False
         self.p1_right = False
         self.p1_up = False
@@ -2570,9 +2686,12 @@ class TestGameView(arcade.View):
         self.p1_w_was_pressed = False
         self.p1_s_was_pressed = False
         self.p1_shift_was_pressed = False
-        self.p1_attack_pressed = False
+        self.p1_attack1_pressed = False  # J
+        self.p1_attack2_pressed = False  # I
+        self.p1_attack3_pressed = False  # L
+        self.p1_stand_pressed = False
 
-        # Флаги управления P2
+        # Флаги управления P2 (клавиатура стрелки + ГЕЙМПАД)
         self.p2_left = False
         self.p2_right = False
         self.p2_up = False
@@ -2580,7 +2699,20 @@ class TestGameView(arcade.View):
         self.p2_up_was_pressed = False
         self.p2_down_was_pressed = False
         self.p2_shift_was_pressed = False
-        self.p2_attack_pressed = False
+        self.p2_attack1_pressed = False  # X (атака 1)
+        self.p2_attack2_pressed = False  # Y (атака 2)
+        self.p2_attack3_pressed = False  # B (атака 3)
+        self.p2_stand_pressed = False    # A (стенд)
+
+        # === ГЕЙМПАД ===
+        self.controller = None
+        self.init_controller()
+
+        # Флаги для предотвращения множественных вызовов
+        self.stand_key_processed = False
+        self.attack1_key_processed = False
+        self.attack2_key_processed = False
+        self.attack3_key_processed = False
 
         self.player1 = None
         self.player2 = None
@@ -2591,9 +2723,188 @@ class TestGameView(arcade.View):
 
         self.setup()
 
+    def init_controller(self):
+        """Инициализация геймпада"""
+        controllers = arcade.get_controllers()
+        if controllers:
+            self.controller = controllers[0]
+            self.controller.open()
+            self.controller.push_handlers(self)
+            print(f"Геймпад подключен: {self.controller.device.name}")
+            print("Управление для ИГРОКА 2 через геймпад:")
+            print("  Левый стик - движение")
+            print("  A - Стенд")
+            print("  X - Атака 1")
+            print("  Y - Атака 2")
+            print("  B - Атака 3")
+            print("  LB/RB - Рывок")
+            print("  D-pad - движение (альтернатива)")
+        else:
+            print("Геймпад не найден. Игрок 2 будет использовать клавиатуру (стрелки)")
+
+    # === ОБРАБОТЧИКИ ГЕЙМПАДА ===
+
+    def on_stick_motion(self, controller, stick_name, vector):
+        """Обработка движения стиков с мертвой зоной"""
+        if not self.player2 or self.intro_mode or self.victory_mode:
+            return
+
+        # Мертвая зона - значение 0.3 (30%)
+        DEAD_ZONE = 0.3
+
+        # Левый стик - движение для игрока 2
+        if stick_name == "leftstick":
+            # Движение по горизонтали с мертвой зоной
+            if abs(vector.x) > DEAD_ZONE:
+                if vector.x < 0:
+                    self.p2_left = True
+                    self.p2_right = False
+                    print(f"Стик влево: {vector.x:.2f}")
+                else:
+                    self.p2_right = True
+                    self.p2_left = False
+                    print(f"Стик вправо: {vector.x:.2f}")
+            else:
+                self.p2_left = False
+                self.p2_right = False
+
+            # Движение по вертикали (прыжок/приседание) с мертвой зоной
+            if abs(vector.y) > DEAD_ZONE:
+                if vector.y > 0:  # Вверх
+                    if not self.p2_up_was_pressed and not self.player2.is_jumping:
+                        self.player2.jump()
+                        self.p2_up_was_pressed = True
+                        print(f"Прыжок: {vector.y:.2f}")
+                    self.p2_up = True
+                elif vector.y < 0:  # Вниз
+                    if not self.p2_down_was_pressed and not self.player2.is_crouching:
+                        self.player2.crouch(True)
+                        self.p2_down_was_pressed = True
+                        print(f"Приседание: {vector.y:.2f}")
+                    self.p2_down = True
+            else:
+                self.p2_up = False
+                self.p2_down = False
+                if self.p2_up_was_pressed:
+                    self.p2_up_was_pressed = False
+                if self.p2_down_was_pressed:
+                    self.player2.crouch(False)
+                    self.p2_down_was_pressed = False
+
+    def on_dpad_motion(self, controller, vector):
+        """Обработка D-pad (крестовины) - альтернативное управление"""
+        if not self.player2 or self.intro_mode or self.victory_mode:
+            return
+
+        # D-pad для движения
+        if vector.x < 0:  # Влево
+            self.p2_left = True
+            self.p2_right = False
+        elif vector.x > 0:  # Вправо
+            self.p2_right = True
+            self.p2_left = False
+        else:
+            # Если D-pad не двигается по X, не сбрасываем движение,
+            # так как стик тоже может управлять
+            if not (abs(self.controller.leftx) > 0.1 if self.controller else False):
+                self.p2_left = False
+                self.p2_right = False
+
+        # D-pad для прыжка/приседания
+        if vector.y > 0:  # Вверх
+            if not self.p2_up_was_pressed and not self.player2.is_jumping:
+                self.player2.jump()
+                self.p2_up_was_pressed = True
+        elif vector.y < 0:  # Вниз
+            if not self.p2_down_was_pressed and not self.player2.is_crouching:
+                self.player2.crouch(True)
+                self.p2_down_was_pressed = True
+        else:
+            if self.p2_up_was_pressed:
+                self.p2_up_was_pressed = False
+            if self.p2_down_was_pressed:
+                self.player2.crouch(False)
+                self.p2_down_was_pressed = False
+
+    def on_button_press(self, controller, button_name):
+        """Обработка нажатия кнопок геймпада"""
+        if not self.player2 or self.intro_mode or self.victory_mode:
+            return
+
+        print(f"Кнопка нажата: {button_name}")
+
+        # Кнопки Xbox:
+        # 'a' - A (стенд)
+        # 'x' - X (атака 1)
+        # 'y' - Y (атака 2)
+        # 'b' - B (атака 3)
+        # 'leftshoulder' - LB (рывок)
+        # 'rightshoulder' - RB (рывок)
+        # 'start' - Start (пауза/меню)
+
+        if button_name == 'a' and not self.stand_key_processed:
+            # A - призыв/убирание стенда
+            self.player2.toggle_stand()
+            self.stand_key_processed = True
+
+        elif button_name == 'x' and not self.attack1_key_processed:
+            # X - атака 1
+            self.player2.attack1()
+            self.attack1_key_processed = True
+
+        elif button_name == 'y' and not self.attack2_key_processed:
+            # Y - атака 2
+            self.player2.attack2()
+            self.attack2_key_processed = True
+
+        elif button_name == 'b' and not self.attack3_key_processed:
+            # B - атака 3
+            self.player2.attack3()
+            self.attack3_key_processed = True
+
+        elif button_name in ['leftshoulder', 'rightshoulder'] and not self.p2_shift_was_pressed:
+            # LB/RB - рывок
+            self.p2_shift_was_pressed = True
+
+        elif button_name == 'start':
+            print("Пауза/Меню")
+
+    def on_button_release(self, controller, button_name):
+        """Обработка отпускания кнопок геймпада"""
+        if not self.player2:
+            return
+
+        if button_name == 'a':
+            # Сбрасываем флаг стенда
+            self.stand_key_processed = False
+        elif button_name == 'x':
+            # Сбрасываем флаг атаки 1
+            self.attack1_key_processed = False
+        elif button_name == 'y':
+            # Сбрасываем флаг атаки 2
+            self.attack2_key_processed = False
+        elif button_name == 'b':
+            # Сбрасываем флаг атаки 3
+            self.attack3_key_processed = False
+        elif button_name in ['leftshoulder', 'rightshoulder']:
+            self.p2_shift_was_pressed = False
+
+    def on_trigger_motion(self, controller, trigger_name, value):
+        """Обработка триггеров (можно использовать для рывка)"""
+        if not self.player2 or self.intro_mode or self.victory_mode:
+            return
+
+        if value > 0.5:  # Триггер нажат достаточно сильно
+            if not self.p2_shift_was_pressed:
+                self.p2_shift_was_pressed = True
+        else:
+            self.p2_shift_was_pressed = False
+
     def setup(self):
         self.player1 = Character(self.p1_character_name, SCREEN_WIDTH // 4, GROUND_LEVEL, player_number=1)
         self.player2 = Character(self.p2_character_name, 3 * SCREEN_WIDTH // 4, GROUND_LEVEL, player_number=2)
+
+        # В тестовом режиме НЕ создаем статистику (stats остается None)
 
         self.player1.set_opponent(self.player2)
         self.player2.set_opponent(self.player1)
@@ -2608,7 +2919,6 @@ class TestGameView(arcade.View):
 
         # Запускаем анимацию приветствия, если включен режим интро
         if hasattr(self, 'intro_mode') and self.intro_mode:
-            # Убеждаемся, что анимации существуют в frame_ranges
             if "intro" in self.player1.frame_ranges:
                 self.player1.set_action("intro")
             else:
@@ -2702,7 +3012,7 @@ class TestGameView(arcade.View):
                                  SCREEN_WIDTH // 4, info_y, arcade.color.WHITE, 14, anchor_x="center")
                 info_y -= 25
                 if self.player1.is_attacking:
-                    combo_info = f"Комбо: {self.player1.combo_counter}/3"
+                    combo_info = f"Атака: {self.player1.current_attack}"
                     if self.player1.attack_hit:
                         combo_info += " (попадание)"
                     arcade.draw_text(combo_info, SCREEN_WIDTH // 4, info_y, arcade.color.YELLOW, 14, anchor_x="center")
@@ -2715,17 +3025,22 @@ class TestGameView(arcade.View):
                                  3 * SCREEN_WIDTH // 4, info_y, arcade.color.WHITE, 14, anchor_x="center")
                 info_y -= 25
                 if self.player2.is_attacking:
-                    combo_info = f"Комбо: {self.player2.combo_counter}/3"
+                    combo_info = f"Атака: {self.player2.current_attack}"
                     if self.player2.attack_hit:
                         combo_info += " (попадание)"
                     arcade.draw_text(combo_info, 3 * SCREEN_WIDTH // 4, info_y, arcade.color.YELLOW, 14,
                                      anchor_x="center")
 
-            # В тестовом режиме показываем хитбоксы и отладочную информацию
-            arcade.draw_text("WASD + Shift (рывок) | Q - Стенд | J - Атака",
+            # Обновленная информация об управлении
+            arcade.draw_text("WASD + Shift | J - Атака 1 | I - Атака 2 | L - Атака 3 | K - Стенд",
                              SCREEN_WIDTH // 4, 80, arcade.color.CYAN, 14, anchor_x="center")
-            arcade.draw_text("Стрелки + Shift (рывок) | NUM 1 - Стенд | Пробел - Атака",
-                             3 * SCREEN_WIDTH // 4, 80, arcade.color.ORANGE, 14, anchor_x="center")
+
+            if self.controller:
+                arcade.draw_text("ГЕЙМПАД: Стик + LB/RB | A - Атака | X - Стенд",
+                                 3 * SCREEN_WIDTH // 4, 80, arcade.color.ORANGE, 14, anchor_x="center")
+            else:
+                arcade.draw_text("Стрелки + Shift | Пробел - Атака | NUM 1 - Стенд",
+                                 3 * SCREEN_WIDTH // 4, 80, arcade.color.ORANGE, 14, anchor_x="center")
 
             if self.player1:
                 self.draw_attack_hitbox(self.player1, arcade.color.RED)
@@ -2735,7 +3050,7 @@ class TestGameView(arcade.View):
         arcade.draw_text("ESC - меню", SCREEN_WIDTH - 120, 30, arcade.color.GRAY, 14)
 
     def draw_attack_hitbox(self, character, color):
-        # Метод для отрисовки хитбоксов (только для тестового режима)
+        """Метод для отрисовки хитбоксов (только для тестового режима)"""
         if hasattr(character, '_custom_hitbox') and character._custom_hitbox:
             hit_width, hit_height = character._custom_hitbox
         elif hasattr(character, 'hitbox_size'):
@@ -2768,7 +3083,6 @@ class TestGameView(arcade.View):
         )
 
         arcade.draw_circle_filled(character.center_x, character.center_y, 5, arcade.color.WHITE)
-        arcade.draw_line(0, GROUND_LEVEL, SCREEN_WIDTH, GROUND_LEVEL, arcade.color.GRAY, 1)
 
         if character.stand_active and character.stand and character.stand.is_attacking:
             attack_data = get_attack_data(character.character_name, f"stand_attack{character.stand.current_combo}")
@@ -2796,17 +3110,6 @@ class TestGameView(arcade.View):
                     (128, 0, 128, 30)
                 )
 
-                if character.facing_right:
-                    distance_x = hitbox_left - char_right
-                    distance_y = hitbox_center_y - character.center_y
-                    arcade.draw_text(f"X:{distance_x:.0f} Y:{distance_y:.0f}",
-                                     character.center_x, character.center_y - 70,
-                                     arcade.color.PURPLE, 12, anchor_x="center")
-
-                arcade.draw_text(f"off_y:{offset_y}",
-                                 hitbox_left, hitbox_top + 20,
-                                 arcade.color.PURPLE, 12)
-
         elif character.is_attacking and "stand" not in character.current_action:
             attack_data = get_attack_data(character.character_name, character.current_action)
             if attack_data:
@@ -2832,24 +3135,6 @@ class TestGameView(arcade.View):
                     hitbox_left, hitbox_right, hitbox_bottom, hitbox_top,
                     (color[0], color[1], color[2], 30)
                 )
-
-                if character.facing_right:
-                    distance_x = hitbox_left - char_right
-                    distance_y = hitbox_center_y - character.center_y
-                    arcade.draw_text(f"X:{distance_x:.0f} Y:{distance_y:.0f}",
-                                     character.center_x, character.center_y - 70,
-                                     color, 12, anchor_x="center")
-
-                arcade.draw_text(f"off_y:{offset_y}",
-                                 hitbox_left, hitbox_top + 20,
-                                 color, 12)
-
-        arcade.draw_text(f"Размер спрайта: {character.width:.0f} x {character.height:.0f}",
-                         character.center_x, character.center_y - 90,
-                         arcade.color.WHITE, 12, anchor_x="center")
-        arcade.draw_text(f"Кастомный хитбокс: {hit_width:.0f} x {hit_height:.0f}",
-                         character.center_x, character.center_y - 105,
-                         arcade.color.GREEN, 12, anchor_x="center")
 
     def on_update(self, delta_time):
         if not self.player1 or not self.player2:
@@ -2888,7 +3173,7 @@ class TestGameView(arcade.View):
             self.show_game_over("ИГРОК 1 ПОБЕДИЛ!")
             return
 
-        # ИГРОК 1
+        # ИГРОК 1 (WASD + J/I/L)
         if not self.player1.is_summoning and not self.player1.is_hit:
             if not self.player1.is_dashing and not self.player1.is_attacking:
                 self.player1.change_x = 0
@@ -2935,12 +3220,21 @@ class TestGameView(arcade.View):
                 else:
                     self.player1.dash()
 
-            if self.p1_attack_pressed and not self.player1.is_attacking:
-                self.player1.attack()
+            # Обработка трех разных атак для P1
+            if self.p1_attack1_pressed:
+                self.player1.attack1()
+            if self.p1_attack2_pressed:
+                self.player1.attack2()
+            if self.p1_attack3_pressed:
+                self.player1.attack3()
+
+            if self.p1_stand_pressed and not self.player1.is_summoning and not self.player1.is_attacking:
+                self.player1.toggle_stand()
+                self.p1_stand_pressed = False
         else:
             self.player1.change_x = 0
 
-        # ИГРОК 2
+        # ИГРОК 2 (клавиатура стрелки + геймпад)
         if not self.player2.is_summoning and not self.player2.is_hit:
             if not self.player2.is_dashing and not self.player2.is_attacking:
                 self.player2.change_x = 0
@@ -2966,19 +3260,23 @@ class TestGameView(arcade.View):
                         self.player2.current_action not in ["crouch"]):
                     self.player2.set_action("idle")
 
-            if self.p2_up and not self.p2_up_was_pressed:
+            # Обработка прыжка (с учетом геймпада и клавиатуры)
+            if (self.p2_up or self.p2_up_was_pressed) and not self.p2_up_was_pressed:
                 if not self.player2.is_crouching and not self.player2.is_dashing and not self.player2.is_attacking:
                     self.player2.jump()
                 self.p2_up_was_pressed = True
 
-            if self.p2_down and not self.p2_down_was_pressed:
+            # Обработка приседания (с учетом геймпада и клавиатуры)
+            if (self.p2_down or self.p2_down_was_pressed) and not self.p2_down_was_pressed:
                 self.player2.crouch(True)
                 self.p2_down_was_pressed = True
 
-            if not self.p2_down and self.p2_down_was_pressed:
+            if not self.p2_down and self.p2_down_was_pressed and not (
+                    self.controller and abs(self.controller.lefty) > 0.1):
                 self.player2.crouch(False)
                 self.p2_down_was_pressed = False
 
+            # Рывок
             if self.p2_shift_was_pressed and not self.player2.is_dashing and self.player2.dash_cooldown == 0:
                 if self.p2_left:
                     self.player2.dash(-1)
@@ -2987,8 +3285,18 @@ class TestGameView(arcade.View):
                 else:
                     self.player2.dash()
 
-            if self.p2_attack_pressed and not self.player2.is_attacking:
-                self.player2.attack()
+            # Обработка трех разных атак для P2 (флаги устанавливаются геймпадом)
+            if self.p2_attack1_pressed:
+                self.player2.attack1()
+            if self.p2_attack2_pressed:
+                self.player2.attack2()
+            if self.p2_attack3_pressed:
+                self.player2.attack3()
+
+            # Стенд для P2
+            if self.p2_stand_pressed and not self.player2.is_summoning and not self.player2.is_attacking:
+                self.player2.toggle_stand()
+                self.p2_stand_pressed = False
         else:
             self.player2.change_x = 0
 
@@ -3026,7 +3334,7 @@ class TestGameView(arcade.View):
         if "defeat" in self.loser.frame_ranges:
             self.loser.set_action("defeat")
         else:
-            self.loser.set_action("crouch")  # Запасной вариант
+            self.loser.set_action("crouch")
 
         # Убираем стенды для чистоты
         if self.winner.stand_active:
@@ -3051,7 +3359,7 @@ class TestGameView(arcade.View):
         if self.intro_mode or self.victory_mode:
             return
 
-        # Игрок 1
+        # Игрок 1 (WASD + J/I/L)
         if key == arcade.key.A:
             self.p1_left = True
         elif key == arcade.key.D:
@@ -3060,17 +3368,19 @@ class TestGameView(arcade.View):
             self.p1_up = True
         elif key == arcade.key.S:
             self.p1_down = True
-        elif key == arcade.key.Q:
+        elif key == arcade.key.J:  # Атака 1
+            self.p1_attack1_pressed = True
+        elif key == arcade.key.I:  # Атака 2
+            self.p1_attack2_pressed = True
+        elif key == arcade.key.L:  # Атака 3
+            self.p1_attack3_pressed = True
+        elif key == arcade.key.K:  # Стенд
             if self.player1:
-                self.player1.toggle_stand()
+                self.p1_stand_pressed = True
         elif key == arcade.key.LSHIFT or key == arcade.key.RSHIFT:
             self.p1_shift_was_pressed = True
-        elif key == arcade.key.J:
-            if self.player1 and not self.p1_attack_pressed:
-                self.player1.attack()
-                self.p1_attack_pressed = True
 
-        # Игрок 2
+        # Игрок 2 (стрелки + пробел/1)
         elif key == arcade.key.LEFT:
             self.p2_left = True
         elif key == arcade.key.RIGHT:
@@ -3079,15 +3389,15 @@ class TestGameView(arcade.View):
             self.p2_up = True
         elif key == arcade.key.DOWN:
             self.p2_down = True
-        elif key == arcade.key.NUM_1:
-            if self.player2:
-                self.player2.toggle_stand()
-        elif key == arcade.key.RCTRL:
-            self.p2_shift_was_pressed = True
         elif key == arcade.key.SPACE:
             if self.player2 and not self.p2_attack_pressed:
                 self.player2.attack()
                 self.p2_attack_pressed = True
+        elif key == arcade.key.NUM_1:
+            if self.player2:
+                self.p2_stand_pressed = True
+        elif key == arcade.key.RCTRL:
+            self.p2_shift_was_pressed = True
 
         elif key == arcade.key.ESCAPE:
             self.window.show_view(ModeMenuView())
@@ -3106,10 +3416,16 @@ class TestGameView(arcade.View):
             self.p1_w_was_pressed = False
         elif key == arcade.key.S:
             self.p1_down = False
+        elif key == arcade.key.J:  # Атака 1
+            self.p1_attack1_pressed = False
+        elif key == arcade.key.I:  # Атака 2
+            self.p1_attack2_pressed = False
+        elif key == arcade.key.L:  # Атака 3
+            self.p1_attack3_pressed = False
+        elif key == arcade.key.K:  # Стенд
+            self.p1_stand_pressed = False
         elif key == arcade.key.LSHIFT or key == arcade.key.RSHIFT:
             self.p1_shift_was_pressed = False
-        elif key == arcade.key.J:
-            self.p1_attack_pressed = False
 
         # Игрок 2
         elif key == arcade.key.LEFT:
@@ -3121,10 +3437,12 @@ class TestGameView(arcade.View):
             self.p2_up_was_pressed = False
         elif key == arcade.key.DOWN:
             self.p2_down = False
-        elif key == arcade.key.RCTRL:
-            self.p2_shift_was_pressed = False
         elif key == arcade.key.SPACE:
             self.p2_attack_pressed = False
+        elif key == arcade.key.NUM_1:
+            self.p2_stand_pressed = False
+        elif key == arcade.key.RCTRL:
+            self.p2_shift_was_pressed = False
 
 
 class GameOverView(arcade.View):

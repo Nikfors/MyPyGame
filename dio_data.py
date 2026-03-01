@@ -6,71 +6,57 @@ DIO_CHARACTER = {
     "health": 1000,
     "stand_name": "The World",
     "hitbox_size": (80, 200),
-    "block_frames": (608, 609),  # Кадры для анимации блока (для DIO это 608-609)
-    "block_offset_x": 40,  # Смещение спрайта блока по X
-    "block_offset_y": 0,  # Смещение спрайта блока по Y
-    "block_duration": 30,  # Длительность блока в кадрах
-    "block_cooldown": 40,  # Перезарядка блока
+    "block_frames": (608, 609),
+    "block_offset_x": 40,
+    "block_offset_y": 0,
+    "block_duration": 30,
+    "block_cooldown": 40,
 
-    # ПАРАМЕТРЫ ШКАЛЫ СТЕНДА (индивидуальные для персонажа)
+    # ПАРАМЕТРЫ ШКАЛЫ СТЕНДА
     "stand_meter_max": 100,
     "stand_summon_cost": 10,
-    "stand_block_drain": 20,  # Расход при блоке со стендом
-    "stand_block_drain_no_stand": 10,  # Расход при блоке без стенда
-    "stand_gain_on_hit": 15,  # Пополнение при получении урона
-    "stand_gain_on_block": 5,  # Пополнение при блоке
-    "stand_gain_on_attack": 2,  # Пополнение при атаке
+    "stand_block_drain": 20,
+    "stand_block_drain_no_stand": 10,
+    "stand_gain_on_hit": 15,
+    "stand_gain_on_block": 5,
+    "stand_gain_on_attack": 2,
     "stand_passive_gain": 0.1,
+    "stand_damage_drain": 15,  # Расход шкалы при получении урона
+    "stand_damage_drain_no_stand": 5,  # Расход шкалы при получении урона без стенда
 
-    "frame_ranges": {
-        "block": (608, 609),
-        "idle": (0, 37),
-        "move_right": (54, 69),
-        "move_left": (70, 85),
-        "jump": (103, 115),
-        "crouch": (42, 49),
-        "dash_forward": (86, 93),
-        "dash_backward": (94, 101),
-        "stand_summon": (129, 137),
-        "attack1": (371, 375),
-        "attack2": (376, 386),
-        "attack3": (387, 398),
-        "stand_attack1": (608, 609),
-        "stand_attack2": (608, 609),
-        "stand_attack3": (608, 609),
-        "intro": (623, 650),
-        "victory": (610, 622),
-        "defeat": (537, 567)
+    # ОПТИМИЗИРОВАННЫЙ СЛОВАРЬ АНИМАЦИЙ
+    "animations": {
+        "idle": ((0, 37), 6),
+        "move_right": ((54, 69), 5),
+        "move_left": ((70, 85), 5),
+        "jump": ((103, 115), 3),
+        "crouch": ((42, 49), 4),
+        "dash_forward": ((86, 93), 5),
+        "dash_backward": ((94, 101), 5),
+        "stand_summon": ((129, 137), 5),
+        "attack1": ((371, 375), 3),
+        "attack2": ((376, 386), 3),
+        "attack3": ((387, 398), 3),
+        "stand_attack1": ((608, 609), 3),
+        "stand_attack2": ((608, 609), 3),
+        "stand_attack3": ((608, 609), 4),
+        "intro": ((623, 650), 6),
+        "victory": ((610, 622), 5),
+        "defeat": ((537, 567), 5),
+        "hit": ((193, 201), 3),  # Анимация получения урона
     },
+
     "jump_loop": (111, 112),
     "dash_forward_loop": (88, 91),
     "dash_backward_loop": (96, 99),
-    "animation_speeds": {
-        "idle": 6,
-        "move_right": 5,
-        "move_left": 5,
-        "jump": 3,
-        "crouch": 5,
-        "dash_forward": 4,
-        "dash_backward": 4,
-        "stand_summon": 5,
-        "attack1": 3,
-        "attack2": 3,
-        "attack3": 4,
-        "stand_attack1": 3,
-        "stand_attack2": 3,
-        "stand_attack3": 4,
-        "intro": 6,
-        "victory": 5,
-        "defeat": 5,
-    },
+
     "attacks": {
         "attack1": {
             "damage": 10,
             "knockback": 5,
             "hitbox": (70, 40),
             "offset_x": 90,
-            "offset_y": 45,           # По центру
+            "offset_y": 45,
             "active_frames": (372, 372),
         },
         "attack2": {
@@ -78,15 +64,15 @@ DIO_CHARACTER = {
             "knockback": 8,
             "hitbox": (45, 75),
             "offset_x": 100,
-            "offset_y": 90,            # Чуть выше (удар в голову)
+            "offset_y": 90,
             "active_frames": (379, 380),
         },
         "attack3": {
             "damage": 25,
             "knockback": 50,
             "hitbox": (50, 80),
-            "offset_x": 110,
-            "offset_y": 30,           # Чуть ниже (удар в ноги)
+            "offset_x": 130,
+            "offset_y": 30,
             "active_frames": (390, 391),
         },
         "stand_attack1": {
@@ -116,7 +102,6 @@ DIO_CHARACTER = {
     },
     "combo_window": 30,
     "crouch_freeze_frame": 45,
-    "animation_speed": 5,
     "movement_speed": 2,
     "jump_speed": 15,
     "dash_speed": 15,
@@ -130,34 +115,22 @@ DIO_STAND = {
     "display_name": "The World",
     "folder_name": "TheWorld",
     "file_prefix": "TheWorld",
-    "frame_ranges": {
-        "idle": (0, 4),
-        "block": (47, 48),
-        "move_forward": (23, 24),
-        "move_backward": (17, 18),
-        "jump": (38, 39),
-        "dash_forward": (27, 31),
-        "dash_backward": (33, 37),
-        "summon": (40, 45),
-        "attack1": (142, 149),
-        "attack2": (165, 175),
-        "attack3": (176, 184),
+    "animations": {
+        "idle": ((0, 4), 7),
+        "block": ((47, 48), 6),
+        "move_forward": ((23, 24), 4),
+        "move_backward": ((17, 18), 4),
+        "jump": ((38, 39), 3),
+        "dash_forward": ((27, 31), 9),
+        "dash_backward": ((33, 37), 7),
+        "summon": ((40, 45), 6),
+        "attack1": ((142, 149), 3),
+        "attack2": ((165, 175), 3),
+        "attack3": ((176, 184), 4),
     },
     "jump_loop": (38, 39),
     "dash_forward_loop": (28, 29),
     "dash_backward_loop": (34, 35),
-    "animation_speeds": {
-        "idle": 7,
-        "move_forward": 4,
-        "move_backward": 4,
-        "jump": 3,
-        "dash_forward": 9,
-        "dash_backward": 7,
-        "summon": 6,
-        "attack1": 4,
-        "attack2": 4,
-        "attack3": 5,
-    },
     "sprite_scale": 2,
     "offset_x": 0,
     "offset_y": 0,

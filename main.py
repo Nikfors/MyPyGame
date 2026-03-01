@@ -62,6 +62,9 @@ POINTS_WIN_BONUS = 50
 STAND_DAMAGE_DRAIN = 15
 STAND_DAMAGE_DRAIN_NO_STAND = 5
 
+# Константа для мертвой зоны стиков
+STICK_DEAD_ZONE = 0.3
+
 
 class Database:
     """Класс для работы с базой данных SQLite"""
@@ -265,6 +268,43 @@ class PlayerStats:
         }
 
 
+class MusicManager:
+    """Глобальный менеджер музыки"""
+    _instance = None
+    _current_music = None
+    _music_player = None
+    _is_playing = False
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def play_menu_music(self):
+        """Запуск музыки меню"""
+        if self._is_playing:
+            return
+
+        music_path = Path("Звук") / "Menu" / "jojo_menu.mp3"
+        if music_path.exists():
+            # Останавливаем предыдущую музыку если была
+            self.stop_music()
+            # Загружаем и запускаем новую
+            self._current_music = arcade.load_sound(str(music_path))
+            if self._current_music:
+                self._music_player = arcade.play_sound(self._current_music, volume=0.5)
+                self._is_playing = True
+                print("Музыка меню запущена (один раз)")
+
+    def stop_music(self):
+        """Остановка музыки"""
+        if self._current_music and self._is_playing:
+            self._current_music = None
+            self._music_player = None
+            self._is_playing = False
+            print("Музыка остановлена")
+
+
 class StartView(arcade.View):
     def __init__(self):
         super().__init__()
@@ -277,6 +317,35 @@ class StartView(arcade.View):
                                     arcade.color.BLACK, 20, anchor_x="center", bold=True)
         self.show_text = True
         self.timer = 0
+
+        # Менеджер музыки
+        self.music_manager = MusicManager()
+
+        # Звуки
+        self.select_sound = None
+        self.confirm_sound = None
+        self.load_sounds()
+
+    def load_sounds(self):
+        """Загрузка звуков эффектов"""
+        try:
+            # Звук выбора (перемещения по меню)
+            select_path = Path("Звук") / "Menu" / "Menu Select.wav"
+            if select_path.exists():
+                self.select_sound = arcade.load_sound(str(select_path))
+                print("Звук выбора загружен")
+
+            # Звук подтверждения
+            confirm_path = Path("Звук") / "Menu" / "Menu Confirm.wav"
+            if confirm_path.exists():
+                self.confirm_sound = arcade.load_sound(str(confirm_path))
+                print("Звук подтверждения загружен")
+        except Exception as e:
+            print(f"Ошибка загрузки звуков: {e}")
+
+    def on_show(self):
+        """Вызывается когда окно становится активным"""
+        # В StartView музыка еще не играет (ждем нажатия ENTER)
 
     def on_draw(self):
         self.clear()
@@ -295,8 +364,20 @@ class StartView(arcade.View):
     def on_key_press(self, key, modifiers):
         self.window.on_key_press(key, modifiers)
         if key == arcade.key.ENTER:
+            # Звук подтверждения
+            if self.confirm_sound:
+                arcade.play_sound(self.confirm_sound)
+
+            # Запускаем музыку меню
+            self.music_manager.play_menu_music()
+
             print("Переход в меню режимов")
-            self.window.show_view(ModeMenuView())
+            # Передаем звуки в следующее окно
+            mode_menu_view = ModeMenuView()
+            mode_menu_view.select_sound = self.select_sound
+            mode_menu_view.confirm_sound = self.confirm_sound
+            mode_menu_view.music_manager = self.music_manager
+            self.window.show_view(mode_menu_view)
 
 
 class Stand(arcade.Sprite):
@@ -751,11 +832,6 @@ class Character(arcade.Sprite):
         return None
 
     def get_action_for_movement(self, moving_left, moving_right):
-        """
-        Определяет анимацию движения в зависимости от направления движения и направления взгляда
-        moving_left: True если игрок нажал кнопку движения влево
-        moving_right: True если игрок нажал кнопку движения вправо
-        """
         if moving_left and moving_right:
             return None
 
@@ -1474,6 +1550,11 @@ class ModeMenuView(arcade.View):
         self.ui_sprite_list = arcade.SpriteList()
         self.side_rams_list = arcade.SpriteList()
 
+        # Звуки и музыка (будут переданы из StartView)
+        self.select_sound = None
+        self.confirm_sound = None
+        self.music_manager = None
+
         bg_path = Path("Лого") / "fon_menu.png"
         orig_w, orig_h = 128, 64
         self.bg_scale = SCREEN_WIDTH / (5 * orig_w)
@@ -1536,8 +1617,15 @@ class ModeMenuView(arcade.View):
         self.ram_anim_frame = 0
         self.timer = 0.0
         self.ram_timer = 0.0
+        self.last_selected_index = 0
 
         self.modes = ["ТЕСТОВЫЙ РЕЖИМ", "БОЙ 1 НА 1", "ТАБЛИЦА ЛИДЕРОВ"]
+
+    def on_show(self):
+        """Вызывается когда окно становится активным"""
+        # Убеждаемся что музыка играет
+        if self.music_manager:
+            self.music_manager.play_menu_music()
 
     def on_update(self, delta_time):
         for s in self.bg_sprite_list:
@@ -1556,11 +1644,23 @@ class ModeMenuView(arcade.View):
                 elif self.anim_state == "outro" and self.current_frame >= 13:
                     self.current_frame = 13
                     if self.selected_index == 0:
-                        self.window.show_view(TestCharacterSelectView())
+                        next_view = TestCharacterSelectView()
+                        next_view.select_sound = self.select_sound
+                        next_view.confirm_sound = self.confirm_sound
+                        next_view.music_manager = self.music_manager
+                        self.window.show_view(next_view)
                     elif self.selected_index == 1:
-                        self.window.show_view(PlayerNameInputView(is_p1=True))
+                        next_view = PlayerNameInputView(is_p1=True)
+                        next_view.select_sound = self.select_sound
+                        next_view.confirm_sound = self.confirm_sound
+                        next_view.music_manager = self.music_manager
+                        self.window.show_view(next_view)
                     else:
-                        self.window.show_view(LeaderboardView())
+                        next_view = LeaderboardView()
+                        next_view.select_sound = self.select_sound
+                        next_view.confirm_sound = self.confirm_sound
+                        next_view.music_manager = self.music_manager
+                        self.window.show_view(next_view)
 
                 if self.current_frame < len(self.darby_textures):
                     self.darby_sprite.texture = self.darby_textures[self.current_frame]
@@ -1578,7 +1678,6 @@ class ModeMenuView(arcade.View):
                 self.right_ram.texture = self.ram_textures[self.ram_anim_frame]
                 self.left_ram.texture = self.ram_textures[0]
             else:
-                # Для третьего пункта подсвечиваем центр
                 self.left_ram.texture = self.ram_textures[0]
                 self.right_ram.texture = self.ram_textures[0]
 
@@ -1591,7 +1690,6 @@ class ModeMenuView(arcade.View):
         self.side_rams_list.draw()
         self.header_text.draw()
 
-        # Отрисовка трех пунктов меню
         colors = [arcade.color.WHITE] * 3
         colors[self.selected_index] = MENU_SELECTED_COLOR
 
@@ -1606,6 +1704,8 @@ class ModeMenuView(arcade.View):
         if self.anim_state != "idle":
             return
 
+        old_index = self.selected_index
+
         if key in [arcade.key.LEFT, arcade.key.A]:
             self.selected_index = (self.selected_index - 1) % 3
         elif key in [arcade.key.RIGHT, arcade.key.D]:
@@ -1615,8 +1715,13 @@ class ModeMenuView(arcade.View):
         elif key in [arcade.key.DOWN, arcade.key.S]:
             self.selected_index = (self.selected_index + 1) % 3
         elif key == arcade.key.ENTER:
+            if self.confirm_sound:
+                arcade.play_sound(self.confirm_sound)
             self.anim_state = "outro"
             self.current_frame = 4
+
+        if old_index != self.selected_index and self.select_sound:
+            arcade.play_sound(self.select_sound)
 
 
 class PlayerNameInputView(arcade.View):
@@ -1627,6 +1732,10 @@ class PlayerNameInputView(arcade.View):
         self.player_name = ""
         self.cursor_timer = 0
         self.show_cursor = True
+
+        self.select_sound = None
+        self.confirm_sound = None
+        self.music_manager = None
 
         self.bg_sprite_list = arcade.SpriteList()
         bg_path = Path("Лого") / "fon_menu.png"
@@ -1643,6 +1752,10 @@ class PlayerNameInputView(arcade.View):
                     s.center_x = c * self.tile_w + (self.tile_w / 2)
                     s.center_y = r * self.tile_h + (self.tile_h / 2)
                     self.bg_sprite_list.append(s)
+
+    def on_show(self):
+        if self.music_manager:
+            self.music_manager.play_menu_music()
 
     def on_update(self, delta_time):
         for s in self.bg_sprite_list:
@@ -1671,7 +1784,6 @@ class PlayerNameInputView(arcade.View):
         arcade.draw_text(title, SCREEN_WIDTH // 2, SCREEN_HEIGHT - 150,
                          arcade.color.GOLD, 40, anchor_x="center", bold=True)
 
-        # Поле ввода
         input_box_width = 400
         input_box_height = 60
         input_box_x = SCREEN_WIDTH // 2
@@ -1700,27 +1812,44 @@ class PlayerNameInputView(arcade.View):
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.ESCAPE:
+            if self.select_sound:
+                arcade.play_sound(self.select_sound)
             self.window.show_view(ModeMenuView())
         elif key == arcade.key.ENTER:
             if self.player_name.strip():
+                if self.confirm_sound:
+                    arcade.play_sound(self.confirm_sound)
                 if self.is_p1:
-                    # Переходим к вводу имени второго игрока
-                    self.window.show_view(PlayerNameInputView(is_p1=False, p1_name=self.player_name))
+                    next_view = PlayerNameInputView(is_p1=False, p1_name=self.player_name)
+                    next_view.select_sound = self.select_sound
+                    next_view.confirm_sound = self.confirm_sound
+                    next_view.music_manager = self.music_manager
+                    self.window.show_view(next_view)
                 else:
-                    # Оба имени введены, переходим к выбору персонажей
-                    self.window.show_view(OneVsOneCharacterSelectView(self.p1_name, self.player_name))
+                    next_view = OneVsOneCharacterSelectView(self.p1_name, self.player_name)
+                    next_view.select_sound = self.select_sound
+                    next_view.confirm_sound = self.confirm_sound
+                    next_view.music_manager = self.music_manager
+                    self.window.show_view(next_view)
         elif key == arcade.key.BACKSPACE:
             if self.player_name:
                 self.player_name = self.player_name[:-1]
+                if self.select_sound:
+                    arcade.play_sound(self.select_sound)
         else:
-            # Добавляем символ (буквы и цифры)
             if key == arcade.key.SPACE:
                 self.player_name += " "
+                if self.select_sound:
+                    arcade.play_sound(self.select_sound)
             elif arcade.key.KEY_0 <= key <= arcade.key.KEY_9:
                 self.player_name += str(key - arcade.key.KEY_0)
+                if self.select_sound:
+                    arcade.play_sound(self.select_sound)
             elif arcade.key.A <= key <= arcade.key.Z:
                 char = chr(key).upper()
                 self.player_name += char
+                if self.select_sound:
+                    arcade.play_sound(self.select_sound)
 
 
 class OneVsOneCharacterSelectView(arcade.View):
@@ -1730,6 +1859,10 @@ class OneVsOneCharacterSelectView(arcade.View):
 
         self.p1_name = p1_name
         self.p2_name = p2_name
+
+        self.select_sound = None
+        self.confirm_sound = None
+        self.music_manager = None
 
         self.bg_sprite_list = arcade.SpriteList()
         bg_path = Path("Лого") / "fon_menu.png"
@@ -1751,6 +1884,8 @@ class OneVsOneCharacterSelectView(arcade.View):
         self.p1_selected = 0
         self.p2_selected = 0
         self.current_player = 1
+        self.last_p1_selected = 0
+        self.last_p2_selected = 0
 
         self.logos = {}
         self.load_logos()
@@ -1778,6 +1913,10 @@ class OneVsOneCharacterSelectView(arcade.View):
                     self.logos[character] = arcade.load_texture(str(file_path))
                 except:
                     pass
+
+    def on_show(self):
+        if self.music_manager:
+            self.music_manager.play_menu_music()
 
     def on_update(self, delta_time):
         for s in self.bg_sprite_list:
@@ -1834,6 +1973,9 @@ class OneVsOneCharacterSelectView(arcade.View):
             arcade.draw_lrbt_rectangle_outline(x - 120, x + 120, y - 70, y + 110, color, 3)
 
     def on_key_press(self, key, modifiers):
+        old_p1 = self.p1_selected
+        old_p2 = self.p2_selected
+
         if key == arcade.key.UP:
             if self.current_player == 1:
                 self.p1_selected = (self.p1_selected - 1) % len(self.characters)
@@ -1845,20 +1987,33 @@ class OneVsOneCharacterSelectView(arcade.View):
             else:
                 self.p2_selected = (self.p2_selected + 1) % len(self.characters)
         elif key == arcade.key.ENTER:
+            if self.select_sound:
+                arcade.play_sound(self.select_sound)
             self.current_player = 2 if self.current_player == 1 else 1
         elif key == arcade.key.SPACE:
+            if self.select_sound:
+                arcade.play_sound(self.select_sound)
             self.current_player = 3 - self.current_player
         elif key == arcade.key.S:
+            if self.confirm_sound:
+                arcade.play_sound(self.confirm_sound)
+            if self.music_manager:
+                self.music_manager.stop_music()
             p1_char = self.characters[self.p1_selected]
             p2_char = self.characters[self.p2_selected]
             print(f"Запуск боя 1 на 1: {self.p1_name}={p1_char}, {self.p2_name}={p2_char}")
 
             game_view = OneVsOneGameView(self.p1_name, self.p2_name, p1_char, p2_char)
-            game_view.intro_mode = True
-            game_view.intro_timer = 0
             self.window.show_view(game_view)
         elif key == arcade.key.ESCAPE:
+            if self.select_sound:
+                arcade.play_sound(self.select_sound)
             self.window.show_view(ModeMenuView())
+
+        if (self.current_player == 1 and old_p1 != self.p1_selected) or \
+                (self.current_player == 2 and old_p2 != self.p2_selected):
+            if self.select_sound:
+                arcade.play_sound(self.select_sound)
 
 
 class OneVsOneGameView(arcade.View):
@@ -1870,10 +2025,7 @@ class OneVsOneGameView(arcade.View):
         self.p1_character_name = p1_character
         self.p2_character_name = p2_character
 
-        # База данных
         self.db = Database()
-
-        # Статистика игроков
         self.p1_stats = PlayerStats(p1_name)
         self.p2_stats = PlayerStats(p2_name)
 
@@ -1884,7 +2036,6 @@ class OneVsOneGameView(arcade.View):
         if map_path.exists():
             self.background = arcade.load_texture(str(map_path))
 
-        # Анимации
         self.intro_mode = False
         self.intro_timer = 0
         self.victory_mode = False
@@ -1894,7 +2045,6 @@ class OneVsOneGameView(arcade.View):
         self.show_stats = False
         self.stats_timer = 0
 
-        # Флаги управления P1 (WASD + J/I/L)
         self.p1_left = False
         self.p1_right = False
         self.p1_up = False
@@ -1902,12 +2052,11 @@ class OneVsOneGameView(arcade.View):
         self.p1_w_was_pressed = False
         self.p1_s_was_pressed = False
         self.p1_shift_was_pressed = False
-        self.p1_attack1_pressed = False  # J
-        self.p1_attack2_pressed = False  # I
-        self.p1_attack3_pressed = False  # L
+        self.p1_attack1_pressed = False
+        self.p1_attack2_pressed = False
+        self.p1_attack3_pressed = False
         self.p1_stand_pressed = False
 
-        # Флаги управления P2 (IJKL + U/M)
         self.p2_left = False
         self.p2_right = False
         self.p2_up = False
@@ -1931,7 +2080,6 @@ class OneVsOneGameView(arcade.View):
         self.player1 = Character(self.p1_character_name, SCREEN_WIDTH // 4, GROUND_LEVEL, player_number=1)
         self.player2 = Character(self.p2_character_name, 3 * SCREEN_WIDTH // 4, GROUND_LEVEL, player_number=2)
 
-        # Привязываем статистику к персонажам
         self.player1.stats = self.p1_stats
         self.player2.stats = self.p2_stats
 
@@ -1946,7 +2094,6 @@ class OneVsOneGameView(arcade.View):
         self.player2_list.append(self.player2)
         self.physics2 = arcade.PhysicsEngineSimple(self.player2, None)
 
-        # Запускаем анимацию приветствия
         if self.intro_mode:
             if "intro" in self.player1.frame_ranges:
                 self.player1.set_action("intro")
@@ -1958,7 +2105,6 @@ class OneVsOneGameView(arcade.View):
             else:
                 self.player2.set_action("idle")
 
-            # Поворачиваем персонажей друг к другу
             self.player1.facing_right = True
             self.player2.facing_right = False
 
@@ -1995,7 +2141,6 @@ class OneVsOneGameView(arcade.View):
             self.player2.draw_health_bar()
             self.player2.draw_stand_meter()
 
-        # Отображаем имена игроков
         arcade.draw_text(self.p1_name, SCREEN_WIDTH // 4, SCREEN_HEIGHT - 20,
                          arcade.color.CYAN, 18, anchor_x="center", bold=True)
         arcade.draw_text(self.p2_name, 3 * SCREEN_WIDTH // 4, SCREEN_HEIGHT - 20,
@@ -2039,7 +2184,6 @@ class OneVsOneGameView(arcade.View):
                                  SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50,
                                  arcade.color.GOLD, 48, anchor_x="center", bold=True)
 
-                # Показываем статистику
                 if self.show_stats:
                     self.draw_match_stats()
 
@@ -2071,7 +2215,6 @@ class OneVsOneGameView(arcade.View):
                     arcade.draw_text(combo_info, 3 * SCREEN_WIDTH // 4, info_y, arcade.color.YELLOW, 14,
                                      anchor_x="center")
 
-            # Текст управления
             arcade.draw_text("WASD + Shift | J - Атака 1 | I - Атака 2 | L - Атака 3 | K - Стенд",
                              SCREEN_WIDTH // 4, 80, arcade.color.CYAN, 14, anchor_x="center")
             arcade.draw_text("IJKL - движение | U - Атака | M - Стенд | Shift - рывок",
@@ -2080,13 +2223,11 @@ class OneVsOneGameView(arcade.View):
         arcade.draw_text("ESC - меню", SCREEN_WIDTH - 120, 30, arcade.color.GRAY, 14)
 
     def draw_match_stats(self):
-        """Отрисовка статистики матча"""
         y_start = SCREEN_HEIGHT // 2 - 50
 
         arcade.draw_text("СТАТИСТИКА МАТЧА", SCREEN_WIDTH // 2, y_start + 100,
                          arcade.color.GOLD, 24, anchor_x="center", bold=True)
 
-        # Статистика игрока 1
         arcade.draw_text(self.p1_name, SCREEN_WIDTH // 4, y_start + 50,
                          arcade.color.CYAN, 18, anchor_x="center", bold=True)
         arcade.draw_text(f"Попаданий: {self.p1_stats.hits_landed}", SCREEN_WIDTH // 4, y_start + 20,
@@ -2098,7 +2239,6 @@ class OneVsOneGameView(arcade.View):
         arcade.draw_text(f"Очки: {self.p1_stats.points_earned}", SCREEN_WIDTH // 4, y_start - 70,
                          arcade.color.GOLD, 18, anchor_x="center", bold=True)
 
-        # Статистика игрока 2
         arcade.draw_text(self.p2_name, 3 * SCREEN_WIDTH // 4, y_start + 50,
                          arcade.color.ORANGE, 18, anchor_x="center", bold=True)
         arcade.draw_text(f"Попаданий: {self.p2_stats.hits_landed}", 3 * SCREEN_WIDTH // 4, y_start + 20,
@@ -2149,7 +2289,7 @@ class OneVsOneGameView(arcade.View):
             self.show_game_over(self.player1, self.player2)
             return
 
-        # ИГРОК 1 (WASD + J/I/L)
+        # ИГРОК 1
         if not self.player1.is_summoning and not self.player1.is_hit:
             if not self.player1.is_dashing and not self.player1.is_attacking:
                 self.player1.change_x = 0
@@ -2196,7 +2336,6 @@ class OneVsOneGameView(arcade.View):
                 else:
                     self.player1.dash()
 
-            # Обработка трех разных атак
             if self.p1_attack1_pressed:
                 self.player1.attack1()
             if self.p1_attack2_pressed:
@@ -2210,7 +2349,7 @@ class OneVsOneGameView(arcade.View):
         else:
             self.player1.change_x = 0
 
-        # ИГРОК 2 (IJKL + U/M)
+        # ИГРОК 2
         if not self.player2.is_summoning and not self.player2.is_hit:
             if not self.player2.is_dashing and not self.player2.is_attacking:
                 self.player2.change_x = 0
@@ -2284,14 +2423,12 @@ class OneVsOneGameView(arcade.View):
         self.winner = winner
         self.loser = loser
 
-        # Добавляем очки за убийство и победу
         winner.stats.add_kill()
         winner.stats.add_win_bonus()
 
         self.victory_mode = True
         self.victory_timer = 0
 
-        # Запускаем анимации победы и поражения
         if "victory" in winner.frame_ranges:
             winner.set_action("victory")
         else:
@@ -2302,7 +2439,6 @@ class OneVsOneGameView(arcade.View):
         else:
             loser.set_action("crouch")
 
-        # Убираем стенды для чистоты
         if winner.stand_active:
             winner.stand_active = False
             winner.stand = None
@@ -2312,7 +2448,6 @@ class OneVsOneGameView(arcade.View):
             loser.stand = None
             loser.stand_sprite_list.clear()
 
-        # Разворачиваем победителя к проигравшему
         if winner.center_x < loser.center_x:
             winner.facing_right = True
             loser.facing_right = False
@@ -2323,16 +2458,12 @@ class OneVsOneGameView(arcade.View):
         print(f"Анимация победы: {winner.character_name} - victory, {loser.character_name} - defeat")
 
     def save_stats_to_db(self):
-        """Сохранение статистики в базу данных"""
-        # Получаем или создаем игроков
         self.db.get_or_create_player(self.p1_name)
         self.db.get_or_create_player(self.p2_name)
 
-        # Обновляем статистику
         self.db.update_player_stats(self.p1_name, self.p1_stats.get_stats_dict())
         self.db.update_player_stats(self.p2_name, self.p2_stats.get_stats_dict())
 
-        # Сохраняем информацию о матче
         winner_name = self.p1_name if self.winner == self.player1 else self.p2_name
         self.db.save_match(
             self.p1_name, self.p2_name, winner_name,
@@ -2345,12 +2476,10 @@ class OneVsOneGameView(arcade.View):
 
         if self.victory_mode and self.show_stats:
             if key == arcade.key.ENTER:
-                # Сохраняем статистику и выходим
                 self.save_stats_to_db()
                 self.window.show_view(ModeMenuView())
             return
 
-        # Игрок 1 (WASD + J/I/L)
         if key == arcade.key.A:
             self.p1_left = True
         elif key == arcade.key.D:
@@ -2361,16 +2490,15 @@ class OneVsOneGameView(arcade.View):
             self.p1_down = True
         elif key == arcade.key.LSHIFT or key == arcade.key.RSHIFT:
             self.p1_shift_was_pressed = True
-        elif key == arcade.key.J:  # Атака 1
+        elif key == arcade.key.J:
             self.p1_attack1_pressed = True
-        elif key == arcade.key.I:  # Атака 2
+        elif key == arcade.key.I:
             self.p1_attack2_pressed = True
-        elif key == arcade.key.L:  # Атака 3
+        elif key == arcade.key.L:
             self.p1_attack3_pressed = True
-        elif key == arcade.key.K:  # Стенд
+        elif key == arcade.key.K:
             self.p1_stand_pressed = True
 
-        # Игрок 2 (IJKL + U/M)
         elif key == arcade.key.J:
             self.p2_left = True
         elif key == arcade.key.L:
@@ -2395,7 +2523,6 @@ class OneVsOneGameView(arcade.View):
         if self.intro_mode or self.victory_mode:
             return
 
-        # Игрок 1
         if key == arcade.key.A:
             self.p1_left = False
         elif key == arcade.key.D:
@@ -2415,7 +2542,6 @@ class OneVsOneGameView(arcade.View):
         elif key == arcade.key.L:
             self.p1_attack3_pressed = False
 
-        # Игрок 2
         elif key == arcade.key.J:
             self.p2_left = False
         elif key == arcade.key.L:
@@ -2454,6 +2580,14 @@ class LeaderboardView(arcade.View):
                     s.center_y = r * self.tile_h + (self.tile_h / 2)
                     self.bg_sprite_list.append(s)
 
+        self.select_sound = None
+        self.confirm_sound = None
+        self.music_manager = None
+
+    def on_show(self):
+        if self.music_manager:
+            self.music_manager.play_menu_music()
+
     def on_update(self, delta_time):
         for s in self.bg_sprite_list:
             s.center_y -= 3.0
@@ -2475,7 +2609,6 @@ class LeaderboardView(arcade.View):
             arcade.draw_text("Пока нет игроков", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2,
                              arcade.color.GRAY, 24, anchor_x="center")
         else:
-            # Заголовки
             arcade.draw_text("№", SCREEN_WIDTH // 2 - 350, SCREEN_HEIGHT - 180,
                              arcade.color.CYAN, 18, anchor_x="center")
             arcade.draw_text("ИМЯ", SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT - 180,
@@ -2491,7 +2624,6 @@ class LeaderboardView(arcade.View):
             arcade.draw_text("КОМБО", SCREEN_WIDTH // 2 + 300, SCREEN_HEIGHT - 180,
                              arcade.color.CYAN, 18, anchor_x="center")
 
-            # Список игроков
             for i, leader in enumerate(self.leaders):
                 y = SCREEN_HEIGHT - 220 - i * 35
                 if i == 0:
@@ -2516,8 +2648,12 @@ class LeaderboardView(arcade.View):
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.ESCAPE:
+            if self.select_sound:
+                arcade.play_sound(self.select_sound)
             self.window.show_view(ModeMenuView())
         elif key == arcade.key.R:
+            if self.select_sound:
+                arcade.play_sound(self.select_sound)
             self.leaders = self.db.get_leaderboard(15)
 
 
@@ -2525,6 +2661,10 @@ class TestCharacterSelectView(arcade.View):
     def __init__(self):
         super().__init__()
         print("TestCharacterSelectView инициализирован")
+
+        self.select_sound = None
+        self.confirm_sound = None
+        self.music_manager = None
 
         self.bg_sprite_list = arcade.SpriteList()
         bg_path = Path("Лого") / "fon_menu.png"
@@ -2546,6 +2686,8 @@ class TestCharacterSelectView(arcade.View):
         self.p1_selected = 0
         self.p2_selected = 0
         self.current_player = 1
+        self.last_p1_selected = 0
+        self.last_p2_selected = 0
 
         self.logos = {}
         self.load_logos()
@@ -2556,11 +2698,9 @@ class TestCharacterSelectView(arcade.View):
             arcade.color.WHITE, 36, anchor_x="center"
         )
         self.p1_text = arcade.Text("ИГРОК 1 (WASD + J/I/L)", SCREEN_WIDTH // 4, SCREEN_HEIGHT - 150, arcade.color.CYAN,
-                                   28,
-                                   anchor_x="center")
-        self.p2_text = arcade.Text("ИГРОК 2 (ГЕЙМПАД + Стрелки)", 3 * SCREEN_WIDTH // 4, SCREEN_HEIGHT - 150,
-                                   arcade.color.ORANGE,
                                    28, anchor_x="center")
+        self.p2_text = arcade.Text("ИГРОК 2 (ГЕЙМПАД + Стрелки)", 3 * SCREEN_WIDTH // 4, SCREEN_HEIGHT - 150,
+                                   arcade.color.ORANGE, 28, anchor_x="center")
         self.instruction_text = arcade.Text("ENTER - выбрать | ПРОБЕЛ - переключить | ESC - назад", SCREEN_WIDTH // 2,
                                             80, arcade.color.GRAY, 16, anchor_x="center")
         self.start_text = arcade.Text("После выбора обоих нажмите S для старта", SCREEN_WIDTH // 2, 50,
@@ -2574,6 +2714,10 @@ class TestCharacterSelectView(arcade.View):
                     self.logos[character] = arcade.load_texture(str(file_path))
                 except:
                     pass
+
+    def on_show(self):
+        if self.music_manager:
+            self.music_manager.play_menu_music()
 
     def on_update(self, delta_time):
         for s in self.bg_sprite_list:
@@ -2630,6 +2774,9 @@ class TestCharacterSelectView(arcade.View):
             arcade.draw_lrbt_rectangle_outline(x - 120, x + 120, y - 70, y + 110, color, 3)
 
     def on_key_press(self, key, modifiers):
+        old_p1 = self.p1_selected
+        old_p2 = self.p2_selected
+
         if key == arcade.key.UP:
             if self.current_player == 1:
                 self.p1_selected = (self.p1_selected - 1) % len(self.characters)
@@ -2641,20 +2788,33 @@ class TestCharacterSelectView(arcade.View):
             else:
                 self.p2_selected = (self.p2_selected + 1) % len(self.characters)
         elif key == arcade.key.ENTER:
+            if self.select_sound:
+                arcade.play_sound(self.select_sound)
             self.current_player = 2 if self.current_player == 1 else 1
         elif key == arcade.key.SPACE:
+            if self.select_sound:
+                arcade.play_sound(self.select_sound)
             self.current_player = 3 - self.current_player
         elif key == arcade.key.S:
+            if self.confirm_sound:
+                arcade.play_sound(self.confirm_sound)
+            if self.music_manager:
+                self.music_manager.stop_music()
             p1_char = self.characters[self.p1_selected]
             p2_char = self.characters[self.p2_selected]
             print(f"Запуск тестового режима: P1={p1_char}, P2={p2_char}")
 
             game_view = TestGameView(p1_char, p2_char)
-            game_view.intro_mode = True
-            game_view.intro_timer = 0
             self.window.show_view(game_view)
         elif key == arcade.key.ESCAPE:
+            if self.select_sound:
+                arcade.play_sound(self.select_sound)
             self.window.show_view(ModeMenuView())
+
+        if (self.current_player == 1 and old_p1 != self.p1_selected) or \
+           (self.current_player == 2 and old_p2 != self.p2_selected):
+            if self.select_sound:
+                arcade.play_sound(self.select_sound)
 
 
 class TestGameView(arcade.View):
@@ -2670,7 +2830,6 @@ class TestGameView(arcade.View):
         if map_path.exists():
             self.background = arcade.load_texture(str(map_path))
 
-        # Анимации
         self.intro_mode = False
         self.intro_timer = 0
         self.victory_mode = False
@@ -2678,7 +2837,6 @@ class TestGameView(arcade.View):
         self.winner = None
         self.loser = None
 
-        # Флаги управления P1 (WASD + J/I/L)
         self.p1_left = False
         self.p1_right = False
         self.p1_up = False
@@ -2686,12 +2844,11 @@ class TestGameView(arcade.View):
         self.p1_w_was_pressed = False
         self.p1_s_was_pressed = False
         self.p1_shift_was_pressed = False
-        self.p1_attack1_pressed = False  # J
-        self.p1_attack2_pressed = False  # I
-        self.p1_attack3_pressed = False  # L
+        self.p1_attack1_pressed = False
+        self.p1_attack2_pressed = False
+        self.p1_attack3_pressed = False
         self.p1_stand_pressed = False
 
-        # Флаги управления P2 (клавиатура стрелки + ГЕЙМПАД)
         self.p2_left = False
         self.p2_right = False
         self.p2_up = False
@@ -2699,16 +2856,14 @@ class TestGameView(arcade.View):
         self.p2_up_was_pressed = False
         self.p2_down_was_pressed = False
         self.p2_shift_was_pressed = False
-        self.p2_attack1_pressed = False  # X (атака 1)
-        self.p2_attack2_pressed = False  # Y (атака 2)
-        self.p2_attack3_pressed = False  # B (атака 3)
-        self.p2_stand_pressed = False    # A (стенд)
+        self.p2_attack1_pressed = False
+        self.p2_attack2_pressed = False
+        self.p2_attack3_pressed = False
+        self.p2_stand_pressed = False
 
-        # === ГЕЙМПАД ===
         self.controller = None
         self.init_controller()
 
-        # Флаги для предотвращения множественных вызовов
         self.stand_key_processed = False
         self.attack1_key_processed = False
         self.attack2_key_processed = False
@@ -2724,7 +2879,6 @@ class TestGameView(arcade.View):
         self.setup()
 
     def init_controller(self):
-        """Инициализация геймпада"""
         controllers = arcade.get_controllers()
         if controllers:
             self.controller = controllers[0]
@@ -2742,45 +2896,32 @@ class TestGameView(arcade.View):
         else:
             print("Геймпад не найден. Игрок 2 будет использовать клавиатуру (стрелки)")
 
-    # === ОБРАБОТЧИКИ ГЕЙМПАДА ===
-
     def on_stick_motion(self, controller, stick_name, vector):
-        """Обработка движения стиков с мертвой зоной"""
         if not self.player2 or self.intro_mode or self.victory_mode:
             return
 
-        # Мертвая зона - значение 0.3 (30%)
-        DEAD_ZONE = 0.3
-
-        # Левый стик - движение для игрока 2
         if stick_name == "leftstick":
-            # Движение по горизонтали с мертвой зоной
-            if abs(vector.x) > DEAD_ZONE:
+            if abs(vector.x) > STICK_DEAD_ZONE:
                 if vector.x < 0:
                     self.p2_left = True
                     self.p2_right = False
-                    print(f"Стик влево: {vector.x:.2f}")
                 else:
                     self.p2_right = True
                     self.p2_left = False
-                    print(f"Стик вправо: {vector.x:.2f}")
             else:
                 self.p2_left = False
                 self.p2_right = False
 
-            # Движение по вертикали (прыжок/приседание) с мертвой зоной
-            if abs(vector.y) > DEAD_ZONE:
-                if vector.y > 0:  # Вверх
+            if abs(vector.y) > STICK_DEAD_ZONE:
+                if vector.y > 0:
                     if not self.p2_up_was_pressed and not self.player2.is_jumping:
                         self.player2.jump()
                         self.p2_up_was_pressed = True
-                        print(f"Прыжок: {vector.y:.2f}")
                     self.p2_up = True
-                elif vector.y < 0:  # Вниз
+                elif vector.y < 0:
                     if not self.p2_down_was_pressed and not self.player2.is_crouching:
                         self.player2.crouch(True)
                         self.p2_down_was_pressed = True
-                        print(f"Приседание: {vector.y:.2f}")
                     self.p2_down = True
             else:
                 self.p2_up = False
@@ -2792,30 +2933,25 @@ class TestGameView(arcade.View):
                     self.p2_down_was_pressed = False
 
     def on_dpad_motion(self, controller, vector):
-        """Обработка D-pad (крестовины) - альтернативное управление"""
         if not self.player2 or self.intro_mode or self.victory_mode:
             return
 
-        # D-pad для движения
-        if vector.x < 0:  # Влево
+        if vector.x < 0:
             self.p2_left = True
             self.p2_right = False
-        elif vector.x > 0:  # Вправо
+        elif vector.x > 0:
             self.p2_right = True
             self.p2_left = False
         else:
-            # Если D-pad не двигается по X, не сбрасываем движение,
-            # так как стик тоже может управлять
             if not (abs(self.controller.leftx) > 0.1 if self.controller else False):
                 self.p2_left = False
                 self.p2_right = False
 
-        # D-pad для прыжка/приседания
-        if vector.y > 0:  # Вверх
+        if vector.y > 0:
             if not self.p2_up_was_pressed and not self.player2.is_jumping:
                 self.player2.jump()
                 self.p2_up_was_pressed = True
-        elif vector.y < 0:  # Вниз
+        elif vector.y < 0:
             if not self.p2_down_was_pressed and not self.player2.is_crouching:
                 self.player2.crouch(True)
                 self.p2_down_was_pressed = True
@@ -2827,74 +2963,53 @@ class TestGameView(arcade.View):
                 self.p2_down_was_pressed = False
 
     def on_button_press(self, controller, button_name):
-        """Обработка нажатия кнопок геймпада"""
         if not self.player2 or self.intro_mode or self.victory_mode:
             return
 
         print(f"Кнопка нажата: {button_name}")
 
-        # Кнопки Xbox:
-        # 'a' - A (стенд)
-        # 'x' - X (атака 1)
-        # 'y' - Y (атака 2)
-        # 'b' - B (атака 3)
-        # 'leftshoulder' - LB (рывок)
-        # 'rightshoulder' - RB (рывок)
-        # 'start' - Start (пауза/меню)
-
         if button_name == 'a' and not self.stand_key_processed:
-            # A - призыв/убирание стенда
             self.player2.toggle_stand()
             self.stand_key_processed = True
 
         elif button_name == 'x' and not self.attack1_key_processed:
-            # X - атака 1
             self.player2.attack1()
             self.attack1_key_processed = True
 
         elif button_name == 'y' and not self.attack2_key_processed:
-            # Y - атака 2
             self.player2.attack2()
             self.attack2_key_processed = True
 
         elif button_name == 'b' and not self.attack3_key_processed:
-            # B - атака 3
             self.player2.attack3()
             self.attack3_key_processed = True
 
         elif button_name in ['leftshoulder', 'rightshoulder'] and not self.p2_shift_was_pressed:
-            # LB/RB - рывок
             self.p2_shift_was_pressed = True
 
         elif button_name == 'start':
             print("Пауза/Меню")
 
     def on_button_release(self, controller, button_name):
-        """Обработка отпускания кнопок геймпада"""
         if not self.player2:
             return
 
         if button_name == 'a':
-            # Сбрасываем флаг стенда
             self.stand_key_processed = False
         elif button_name == 'x':
-            # Сбрасываем флаг атаки 1
             self.attack1_key_processed = False
         elif button_name == 'y':
-            # Сбрасываем флаг атаки 2
             self.attack2_key_processed = False
         elif button_name == 'b':
-            # Сбрасываем флаг атаки 3
             self.attack3_key_processed = False
         elif button_name in ['leftshoulder', 'rightshoulder']:
             self.p2_shift_was_pressed = False
 
     def on_trigger_motion(self, controller, trigger_name, value):
-        """Обработка триггеров (можно использовать для рывка)"""
         if not self.player2 or self.intro_mode or self.victory_mode:
             return
 
-        if value > 0.5:  # Триггер нажат достаточно сильно
+        if value > 0.5:
             if not self.p2_shift_was_pressed:
                 self.p2_shift_was_pressed = True
         else:
@@ -2903,8 +3018,6 @@ class TestGameView(arcade.View):
     def setup(self):
         self.player1 = Character(self.p1_character_name, SCREEN_WIDTH // 4, GROUND_LEVEL, player_number=1)
         self.player2 = Character(self.p2_character_name, 3 * SCREEN_WIDTH // 4, GROUND_LEVEL, player_number=2)
-
-        # В тестовом режиме НЕ создаем статистику (stats остается None)
 
         self.player1.set_opponent(self.player2)
         self.player2.set_opponent(self.player1)
@@ -2917,7 +3030,6 @@ class TestGameView(arcade.View):
         self.player2_list.append(self.player2)
         self.physics2 = arcade.PhysicsEngineSimple(self.player2, None)
 
-        # Запускаем анимацию приветствия, если включен режим интро
         if hasattr(self, 'intro_mode') and self.intro_mode:
             if "intro" in self.player1.frame_ranges:
                 self.player1.set_action("intro")
@@ -2929,7 +3041,6 @@ class TestGameView(arcade.View):
             else:
                 self.player2.set_action("idle")
 
-            # Поворачиваем персонажей друг к другу
             self.player1.facing_right = True
             self.player2.facing_right = False
 
@@ -3031,12 +3142,11 @@ class TestGameView(arcade.View):
                     arcade.draw_text(combo_info, 3 * SCREEN_WIDTH // 4, info_y, arcade.color.YELLOW, 14,
                                      anchor_x="center")
 
-            # Обновленная информация об управлении
             arcade.draw_text("WASD + Shift | J - Атака 1 | I - Атака 2 | L - Атака 3 | K - Стенд",
                              SCREEN_WIDTH // 4, 80, arcade.color.CYAN, 14, anchor_x="center")
 
             if self.controller:
-                arcade.draw_text("ГЕЙМПАД: Стик + LB/RB | A - Атака | X - Стенд",
+                arcade.draw_text("ГЕЙМПАД: Стик + LB/RB | A - Стенд | X - Атака 1 | Y - Атака 2 | B - Атака 3",
                                  3 * SCREEN_WIDTH // 4, 80, arcade.color.ORANGE, 14, anchor_x="center")
             else:
                 arcade.draw_text("Стрелки + Shift | Пробел - Атака | NUM 1 - Стенд",
@@ -3050,7 +3160,6 @@ class TestGameView(arcade.View):
         arcade.draw_text("ESC - меню", SCREEN_WIDTH - 120, 30, arcade.color.GRAY, 14)
 
     def draw_attack_hitbox(self, character, color):
-        """Метод для отрисовки хитбоксов (только для тестового режима)"""
         if hasattr(character, '_custom_hitbox') and character._custom_hitbox:
             hit_width, hit_height = character._custom_hitbox
         elif hasattr(character, 'hitbox_size'):
@@ -3173,7 +3282,7 @@ class TestGameView(arcade.View):
             self.show_game_over("ИГРОК 1 ПОБЕДИЛ!")
             return
 
-        # ИГРОК 1 (WASD + J/I/L)
+        # ИГРОК 1
         if not self.player1.is_summoning and not self.player1.is_hit:
             if not self.player1.is_dashing and not self.player1.is_attacking:
                 self.player1.change_x = 0
@@ -3220,7 +3329,6 @@ class TestGameView(arcade.View):
                 else:
                     self.player1.dash()
 
-            # Обработка трех разных атак для P1
             if self.p1_attack1_pressed:
                 self.player1.attack1()
             if self.p1_attack2_pressed:
@@ -3234,7 +3342,7 @@ class TestGameView(arcade.View):
         else:
             self.player1.change_x = 0
 
-        # ИГРОК 2 (клавиатура стрелки + геймпад)
+        # ИГРОК 2
         if not self.player2.is_summoning and not self.player2.is_hit:
             if not self.player2.is_dashing and not self.player2.is_attacking:
                 self.player2.change_x = 0
@@ -3260,13 +3368,11 @@ class TestGameView(arcade.View):
                         self.player2.current_action not in ["crouch"]):
                     self.player2.set_action("idle")
 
-            # Обработка прыжка (с учетом геймпада и клавиатуры)
             if (self.p2_up or self.p2_up_was_pressed) and not self.p2_up_was_pressed:
                 if not self.player2.is_crouching and not self.player2.is_dashing and not self.player2.is_attacking:
                     self.player2.jump()
                 self.p2_up_was_pressed = True
 
-            # Обработка приседания (с учетом геймпада и клавиатуры)
             if (self.p2_down or self.p2_down_was_pressed) and not self.p2_down_was_pressed:
                 self.player2.crouch(True)
                 self.p2_down_was_pressed = True
@@ -3276,7 +3382,6 @@ class TestGameView(arcade.View):
                 self.player2.crouch(False)
                 self.p2_down_was_pressed = False
 
-            # Рывок
             if self.p2_shift_was_pressed and not self.player2.is_dashing and self.player2.dash_cooldown == 0:
                 if self.p2_left:
                     self.player2.dash(-1)
@@ -3285,7 +3390,6 @@ class TestGameView(arcade.View):
                 else:
                     self.player2.dash()
 
-            # Обработка трех разных атак для P2 (флаги устанавливаются геймпадом)
             if self.p2_attack1_pressed:
                 self.player2.attack1()
             if self.p2_attack2_pressed:
@@ -3293,7 +3397,6 @@ class TestGameView(arcade.View):
             if self.p2_attack3_pressed:
                 self.player2.attack3()
 
-            # Стенд для P2
             if self.p2_stand_pressed and not self.player2.is_summoning and not self.player2.is_attacking:
                 self.player2.toggle_stand()
                 self.p2_stand_pressed = False
@@ -3325,7 +3428,6 @@ class TestGameView(arcade.View):
         self.victory_mode = True
         self.victory_timer = 0
 
-        # Запускаем анимации победы и поражения
         if "victory" in self.winner.frame_ranges:
             self.winner.set_action("victory")
         else:
@@ -3336,7 +3438,6 @@ class TestGameView(arcade.View):
         else:
             self.loser.set_action("crouch")
 
-        # Убираем стенды для чистоты
         if self.winner.stand_active:
             self.winner.stand_active = False
             self.winner.stand = None
@@ -3359,7 +3460,6 @@ class TestGameView(arcade.View):
         if self.intro_mode or self.victory_mode:
             return
 
-        # Игрок 1 (WASD + J/I/L)
         if key == arcade.key.A:
             self.p1_left = True
         elif key == arcade.key.D:
@@ -3368,19 +3468,18 @@ class TestGameView(arcade.View):
             self.p1_up = True
         elif key == arcade.key.S:
             self.p1_down = True
-        elif key == arcade.key.J:  # Атака 1
+        elif key == arcade.key.J:
             self.p1_attack1_pressed = True
-        elif key == arcade.key.I:  # Атака 2
+        elif key == arcade.key.I:
             self.p1_attack2_pressed = True
-        elif key == arcade.key.L:  # Атака 3
+        elif key == arcade.key.L:
             self.p1_attack3_pressed = True
-        elif key == arcade.key.K:  # Стенд
+        elif key == arcade.key.K:
             if self.player1:
                 self.p1_stand_pressed = True
         elif key == arcade.key.LSHIFT or key == arcade.key.RSHIFT:
             self.p1_shift_was_pressed = True
 
-        # Игрок 2 (стрелки + пробел/1)
         elif key == arcade.key.LEFT:
             self.p2_left = True
         elif key == arcade.key.RIGHT:
@@ -3406,7 +3505,6 @@ class TestGameView(arcade.View):
         if self.intro_mode or self.victory_mode:
             return
 
-        # Игрок 1
         if key == arcade.key.A:
             self.p1_left = False
         elif key == arcade.key.D:
@@ -3416,18 +3514,17 @@ class TestGameView(arcade.View):
             self.p1_w_was_pressed = False
         elif key == arcade.key.S:
             self.p1_down = False
-        elif key == arcade.key.J:  # Атака 1
+        elif key == arcade.key.J:
             self.p1_attack1_pressed = False
-        elif key == arcade.key.I:  # Атака 2
+        elif key == arcade.key.I:
             self.p1_attack2_pressed = False
-        elif key == arcade.key.L:  # Атака 3
+        elif key == arcade.key.L:
             self.p1_attack3_pressed = False
-        elif key == arcade.key.K:  # Стенд
+        elif key == arcade.key.K:
             self.p1_stand_pressed = False
         elif key == arcade.key.LSHIFT or key == arcade.key.RSHIFT:
             self.p1_shift_was_pressed = False
 
-        # Игрок 2
         elif key == arcade.key.LEFT:
             self.p2_left = False
         elif key == arcade.key.RIGHT:
@@ -3473,7 +3570,6 @@ def main():
     print("ЗАПУСК ИГРЫ")
     print("=" * 50)
 
-    # Инициализируем базу данных
     db = Database()
     print("База данных инициализирована")
 

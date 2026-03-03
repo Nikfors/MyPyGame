@@ -21,8 +21,8 @@ DIO_CHARACTER = {
     "stand_gain_on_block": 5,
     "stand_gain_on_attack": 2,
     "stand_passive_gain": 0.1,
-    "stand_damage_drain": 15,  # Расход шкалы при получении урона
-    "stand_damage_drain_no_stand": 5,  # Расход шкалы при получении урона без стенда
+    "stand_damage_drain": 15,
+    "stand_damage_drain_no_stand": 5,
 
     # ОПТИМИЗИРОВАННЫЙ СЛОВАРЬ АНИМАЦИЙ
     "animations": {
@@ -40,10 +40,11 @@ DIO_CHARACTER = {
         "stand_attack1": ((608, 609), 3),
         "stand_attack2": ((608, 609), 3),
         "stand_attack3": ((608, 609), 4),
+        "stand_rush": ((237, 255), 3),  # Анимация стойки для раша
         "intro": ((623, 650), 6),
         "victory": ((610, 622), 5),
         "defeat": ((537, 567), 5),
-        "hit": ((193, 201), 3),  # Анимация получения урона
+        "hit": ((193, 201), 3),
     },
 
     "jump_loop": (111, 112),
@@ -100,6 +101,23 @@ DIO_CHARACTER = {
             "active_frames": (180, 181),
         },
     },
+
+    # ДАННЫЕ ДЛЯ СПОСОБНОСТИ СТЕНД РАШ
+    "stand_rush_data": {
+        "cooldown": 200,  # 10 секунд при 60 FPS
+        "damage_per_hit": 8,
+        "knockback_per_hit": 3,
+        # Данные для хитбокса самой атаки
+        "attack_hitbox": {
+            "width": 180,
+            "height": 120,
+            "offset_x": 180,
+            "offset_y": 50,
+        },
+        # Кадры анимации стенда, когда наносятся удары
+        "stand_active_frames": (240, 251),
+    },
+
     "combo_window": 30,
     "crouch_freeze_frame": 45,
     "movement_speed": 2,
@@ -127,10 +145,20 @@ DIO_STAND = {
         "attack1": ((142, 149), 3),
         "attack2": ((165, 175), 3),
         "attack3": ((176, 184), 4),
+        "rush": ((296, 319), 2),  # Анимация ударов стенда
     },
     "jump_loop": (38, 39),
     "dash_forward_loop": (28, 29),
     "dash_backward_loop": (34, 35),
+
+    "rush_data": {
+    "main_frames": (237, 255),      # Анимация САМОГО СТЕНДА
+    "active_frames": (240, 251),    # Кадры, когда активны удары
+    "attack_frames": (296, 319),    # Анимация ударов (отдельные спрайты)
+    "attack_offset_x": 180,          # Смещение ударов вперед
+    "attack_offset_y": 45,
+    },
+
     "sprite_scale": 2,
     "offset_x": 0,
     "offset_y": 0,

@@ -40,10 +40,11 @@ JOTARO_CHARACTER = {
         "stand_attack1": ((688, 694), 3),
         "stand_attack2": ((688, 694), 3),
         "stand_attack3": ((153, 160), 4),
+        "stand_rush": ((237, 255), 3),  # Анимация стойки для раша
         "intro": ((0, 37), 6),
         "victory": ((526, 576), 5),
         "defeat": ((323, 341), 5),
-        "hit": ((170, 173), 3),  # Анимация получения урона
+        "hit": ((170, 173), 3),
     },
 
     "jump_loop": (94, 95),
@@ -100,6 +101,23 @@ JOTARO_CHARACTER = {
             "active_frames": (304, 305),
         },
     },
+
+    # ДАННЫЕ ДЛЯ СПОСОБНОСТИ СТЕНД РАШ
+    "stand_rush_data": {
+        "cooldown": 600,  # 10 секунд при 60 FPS
+        "damage_per_hit": 8,
+        "knockback_per_hit": 3,
+        # Данные для хитбокса самой атаки
+        "attack_hitbox": {
+            "width": 180,
+            "height": 120,
+            "offset_x": 180,
+            "offset_y": 50,
+        },
+        # Кадры анимации стенда, когда наносятся удары
+        "stand_active_frames": (240, 251),
+    },
+
     "combo_window": 30,
     "crouch_freeze_frame": 31,
     "movement_speed": 3,
@@ -127,10 +145,21 @@ JOTARO_STAND = {
         "attack1": ((266, 270), 4),
         "attack2": ((282, 293), 4),
         "attack3": ((301, 313), 5),
+        "rush": ((296, 319), 2),  # Анимация ударов стенда
     },
     "jump_loop": (78, 79),
     "dash_forward_loop": (57, 58),
     "dash_backward_loop": (64, 65),
+
+    # Данные для анимации раша
+    "rush_data": {
+    "main_frames": (474, 497),      # Анимация САМОГО СТЕНДА
+    "active_frames": (476, 493),    # Кадры, когда активны удары
+    "attack_frames": (781, 804),    # Анимация ударов (отдельные спрайты)
+    "attack_offset_x": 180,          # Смещение ударов вперед
+    "attack_offset_y": 50,
+    },
+
     "sprite_scale": 2,
     "offset_x": -40,
     "offset_y": 0,

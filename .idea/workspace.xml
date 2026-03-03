@@ -4,13 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="edc059fa-8a4a-44bb-87ee-22a73f0e2ec1" name="Changes" comment="блокировка">
+    <list default="true" id="edc059fa-8a4a-44bb-87ee-22a73f0e2ec1" name="Changes" comment="начало добовления звука">
+      <change afterPath="$PROJECT_DIR$/kakyoin_data.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/polnareff_data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dio_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/dio_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/jotaro_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/jotaro_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lobby_server.py" beforeDir="false" afterPath="$PROJECT_DIR$/lobby_server.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/network.py" beforeDir="false" afterPath="$PROJECT_DIR$/network.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lobby_server.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/network.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test2.py" beforeDir="false" afterPath="$PROJECT_DIR$/test2.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Звук/DIO/Intro 1.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Звук/Jotaro/Win 1.wav" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,34 +50,34 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python.harakteristici.executor": "Run",
-    "Python.lobby_server.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.test.executor": "Run",
-    "Python.test2.executor": "Run",
-    "Python.tests.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "master",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.harakteristici.executor&quot;: &quot;Run&quot;,
+    &quot;Python.lobby_server.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test2.executor&quot;: &quot;Run&quot;,
+    &quot;Python.tests.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   },
-  "keyToStringList": {
-    "ChangesTree.GroupingKeys": [
-      "directory",
-      "repository"
+  &quot;keyToStringList&quot;: {
+    &quot;ChangesTree.GroupingKeys&quot;: [
+      &quot;directory&quot;,
+      &quot;repository&quot;
     ]
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\user\PycharmProjects\MyPyGame\Лого" />
       <recent name="C:\Users\user\PycharmProjects\MyPyGame" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.test2">
+  <component name="RunManager" selected="Python.tests">
     <configuration name="harakteristici" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="MyPyGame" />
       <option name="ENV_FILES" value="" />
@@ -187,10 +190,10 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.test2" />
         <item itemvalue="Python.tests" />
-        <item itemvalue="Python.lobby_server" />
+        <item itemvalue="Python.test2" />
         <item itemvalue="Python.main" />
+        <item itemvalue="Python.lobby_server" />
         <item itemvalue="Python.harakteristici" />
       </list>
     </recent_temporary>
@@ -354,7 +357,39 @@
       <option name="project" value="LOCAL" />
       <updated>1772167528436</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="финал">
+      <option name="closed" value="true" />
+      <created>1772206969246</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1772206969246</updated>
+    </task>
+    <task id="LOCAL-00020" summary="финал">
+      <option name="closed" value="true" />
+      <created>1772206988495</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1772206988495</updated>
+    </task>
+    <task id="LOCAL-00021" summary="2.0">
+      <option name="closed" value="true" />
+      <created>1772378801888</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1772378801888</updated>
+    </task>
+    <task id="LOCAL-00022" summary="начало добовления звука">
+      <option name="closed" value="true" />
+      <created>1772402183079</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1772402183079</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -374,6 +409,9 @@
     <MESSAGE value="онлайн" />
     <MESSAGE value="добавлены атаки и хитбоксы" />
     <MESSAGE value="блокировка" />
-    <option name="LAST_COMMIT_MESSAGE" value="блокировка" />
+    <MESSAGE value="финал" />
+    <MESSAGE value="2.0" />
+    <MESSAGE value="начало добовления звука" />
+    <option name="LAST_COMMIT_MESSAGE" value="начало добовления звука" />
   </component>
 </project>
